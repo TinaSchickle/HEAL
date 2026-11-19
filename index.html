@@ -8,22 +8,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-/* Layout: schmale Kopfzeile mit Kennzahlen, darunter Tabs; jeder Tab ist ein eigenes Raster aus Karten. */
+/* Layout: Kopfzeile mit Countdown-Kennzahlen, darunter Tabs; jeder Tab ein Raster aus Karten. */
 :root{
   --bg:#f2f6f4; --surface:#ffffff; --ink:#12302a; --muted:#5d7770; --line:#d9e4df;
-  --accent:#2c7a68; --accent-soft:#dcefe9; --warn:#b7791f; --warn-soft:#f8ecd2;
-  --bad:#b5483a; --bad-soft:#f6dfda; --good:#2c7a68; --good-soft:#dcefe9;
+  --accent:#2c7a68; --accent-soft:#dcefe9; --warn:#a96f12; --warn-soft:#f8ecd2;
+  --bad:#b5483a; --bad-soft:#f6dfda; --good:#2c7a68; --good-soft:#dcefe9; --lab:#2f6aa6; --res:#7a52a8; --ext:#b36a10;
   --display:"Fraunces",Georgia,serif; --body:"Inter",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e1a17; --surface:#16251f; --ink:#e3efea; --muted:#94b0a7; --line:#27403a;
   --accent:#5cc2a8; --accent-soft:#1d3a32; --warn:#e2ab52; --warn-soft:#3a2f17;
-  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; color-scheme:dark}}
+  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; --lab:#7db2ea; --res:#b99be6; --ext:#e2ab52; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1a17; --surface:#16251f; --ink:#e3efea; --muted:#94b0a7; --line:#27403a;
   --accent:#5cc2a8; --accent-soft:#1d3a32; --warn:#e2ab52; --warn-soft:#3a2f17;
-  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; color-scheme:dark}
+  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; --lab:#7db2ea; --res:#b99be6; --ext:#e2ab52; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
   padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1080px;margin:0 auto}
@@ -38,37 +39,59 @@ nav{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;mar
 nav button{font:500 .95rem var(--body);color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;padding:12px 16px;cursor:pointer;white-space:nowrap}
 nav button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
 nav button:hover{color:var(--ink)}
-button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h2{font:600 1.35rem var(--display);margin:0 0 4px}
+h3.sec{font:600 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:30px 0 12px}
 .lead{color:var(--muted);margin:0 0 20px;max-width:65ch}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
 .card h3{font:600 1.05rem var(--body);margin:0 0 6px}
 .meta{font-size:.82rem;color:var(--muted)}
-.pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.04em;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);text-transform:uppercase}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.04em;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);text-transform:uppercase;white-space:nowrap}
 .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.mute{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-.bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:12px 0 4px;border:1px solid var(--line)}
+.bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:10px 0 4px;border:1px solid var(--line)}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
-.bar.high i{background:var(--bad)} .bar.mid i{background:var(--warn)}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-.chip{font:500 .82rem var(--body);padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.example{border-style:dashed}
 .note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.85rem;margin-bottom:18px}
-/* Einnahmeplan */
-.day{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;margin-bottom:28px}
-.slot h3{font:600 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
-.slot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.slot li{padding:8px 0;border-top:1px solid var(--line)} .slot li:first-child{border:0;padding-top:0}
-.slot b{font-weight:600} .empty{color:var(--muted);font-size:.9rem}
-/* Plan */
-.approved{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
-.progress{flex:1;min-width:200px}
-.phase{margin-bottom:14px}
-.phase header{padding:0 0 10px;align-items:baseline}
-.phase h3{margin:0}
-.step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+ul.plain{margin:0;padding-left:18px} ul.plain li{margin:3px 0}
+.lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 2px}
+.card p{margin:0}
+.big{font:600 3.4rem/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* Termine */
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.tl li:first-child{border-top:0}
+.tl .d{font:600 .85rem var(--body);font-variant-numeric:tabular-nums}
+.tl li.past{opacity:.5}
+@media (max-width:520px){.tl li{grid-template-columns:1fr auto}.tl .d{grid-column:1/-1}}
+/* Phasen */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0 6px}
+.ph{border-radius:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);font-size:.78rem;min-width:0}
+.ph b{display:block;font-size:.85rem} .ph.now{background:var(--accent-soft);border-color:var(--accent)}
+@media (max-width:640px){.phases{grid-template-columns:1fr 1fr}}
+/* Charts / Werte */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{fill:var(--muted);font:11px var(--body)}
+.chart .pt{fill:var(--ink);font-weight:600}
+.val{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:6px}
+.val b{font:600 2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.val small{color:var(--muted);font-size:.85rem}
+.range{position:relative;height:12px;border-radius:99px;background:var(--bad-soft);margin:18px 0 6px}
+.range .ref{position:absolute;top:0;bottom:0;background:var(--good);opacity:.3;border-radius:99px}
+.range .opt{position:absolute;top:0;bottom:0;background:var(--good);opacity:.8;border-radius:99px}
+.range .mark{position:absolute;top:-4px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-50%)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-bottom:16px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.spark{width:100%;height:60px;display:block;margin-top:10px;overflow:visible}
+.hist{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px;font-variant-numeric:tabular-nums}
+.hist td{padding:3px 0;border-top:1px solid var(--line)} .hist td:last-child{text-align:right}
+table.t{width:100%;border-collapse:collapse;font-size:.88rem}
+table.t th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px 6px 0;border-bottom:1px solid var(--line)}
+table.t td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-align:top}
+.scroll{overflow-x:auto}
+/* To-do */
+.step{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
 .step input{margin-top:4px;accent-color:var(--accent);width:17px;height:17px;flex:none}
 .step.done span{text-decoration:line-through;color:var(--muted)}
 /* Recherche */
@@ -76,211 +99,363 @@ h2{font:600 1.35rem var(--display);margin:0 0 4px}
 .col>h3{font:600 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between}
 .col .card{margin-bottom:12px}
 .q{font:600 1.05rem/1.3 var(--display);margin:0 0 8px}
-.lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 2px}
-.card p{margin:0}
-/* Blutwerte */
-.val{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.val b{font:600 2rem/1 var(--display);font-variant-numeric:tabular-nums}
-.val small{color:var(--muted);font-size:.85rem}
-.range{position:relative;height:12px;border-radius:99px;background:var(--bad-soft);margin:18px 0 6px}
-.range .ref{position:absolute;top:0;bottom:0;background:var(--warn-soft);border-radius:99px}
-.range .opt{position:absolute;top:0;bottom:0;background:var(--good);opacity:.55;border-radius:99px}
-.range .mark{position:absolute;top:-4px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-50%)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-bottom:16px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.spark{width:100%;height:70px;display:block;margin-top:12px;overflow:visible}
-.hist{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px;font-variant-numeric:tabular-nums}
-.hist td{padding:4px 0;border-top:1px solid var(--line)} .hist td:last-child{text-align:right}
+.ev{display:flex;gap:4px;align-items:center}
+.ev i{width:14px;height:6px;border-radius:3px;background:var(--line)} .ev i.on{background:var(--accent)} .ev.risiko i.on{background:var(--bad)}
+.lock{min-height:80vh;display:grid;place-items:center}.lock form{display:grid;gap:10px;width:min(100%,320px)}.lock input{font:inherit;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}.lock button{font:600 .95rem var(--body);padding:10px;border-radius:8px;border:0;background:var(--accent);color:var(--bg);cursor:pointer}/* Normwerte mit Quellen */
+.src{--c:var(--muted)} .src.labor{--c:var(--lab)} .src.recherche{--c:var(--res)} .src.extern{--c:var(--ext)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:99px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);white-space:nowrap}
+.chip:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+.lanes{position:relative;margin:14px 0 4px;padding-top:16px}
+.lane{margin:9px 0}
+.lh{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;font-size:.75rem;margin-bottom:3px}
+.lh .rng{font-variant-numeric:tabular-nums;color:var(--ink)}
+.lh .ok{font-weight:700}
+.tr{position:relative;height:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.bd{position:absolute;top:0;bottom:0;background:var(--c)}
+.bd.referenz{opacity:.4} .bd.ok{opacity:.6} .bd.optimal{opacity:1}
+.bd.offen-r{border-radius:0}
+.mk{position:absolute;top:12px;bottom:16px;width:2px;background:var(--ink);transform:translateX(-50%);pointer-events:none;z-index:2}
+.mk b{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:.7rem;font-weight:700;background:var(--ink);color:var(--bg);padding:0 5px;border-radius:4px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lh .rng{position:relative;z-index:3;background:var(--surface);padding:0 3px;border-radius:3px}
+.axis{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--muted);margin-bottom:16px}
+.lg{display:inline-flex;gap:6px;align-items:center}
+.lg i{width:22px;height:8px;border-radius:4px;background:var(--lab)}
+.src-row{display:flex;gap:6px;align-items:center}
 .foot{margin-top:40px;color:var(--muted);font-size:.8rem}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="lock" id="lock"><form id="lockForm"><h1>HEAL</h1><label for="pw" class="meta">Passwort</label><input id="pw" type="password" autocomplete="current-password" autofocus required><button type="submit">Öffnen</button><p class="meta" id="lockMsg" role="alert"></p></form></div>
+<div class="wrap" id="app" hidden>
   <header>
     <div>
       <h1>HEAL</h1>
-      <p class="sub">Meine Reise zu mehr Gesundheit · Stand <span id="updated"></span></p>
+      <p class="sub" id="sub"></p>
     </div>
     <div class="stats" id="stats"></div>
   </header>
   <nav role="tablist" id="tabs"></nav>
   <main id="view"></main>
-  <p class="foot">Daten liegen in <code>data.js</code>. Kein medizinischer Rat, nur persönliche Dokumentation.</p>
+  <p class="foot">Keine Diagnose, ersetzt keine ärztliche Beratung. Viele Aussagen beruhen auf Abstracts, nicht auf Volltexten. Studien beschreiben Gruppen, nicht die Person.</p>
 </div>
 
-<script src="data.js"></script>
 <script>
-const D = window.HEAL_DATA;
+let D = null;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store = {
   get(k, d){ try { return JSON.parse(localStorage.getItem("heal:"+k)) ?? d } catch { return d } },
   set(k, v){ try { localStorage.setItem("heal:"+k, JSON.stringify(v)) } catch {} }
 };
-const fmtMonth = s => { if(!s) return ""; const [y,m]=s.split("-"); const n=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return m ? n[+m-1]+" "+y : y; };
-const fmtDate = s => { const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"}); };
-const exNote = arr => arr.some(x=>x.beispiel) ? '<div class="note">Das sind Beispiel-Einträge. Ersetze sie in <code>data.js</code> durch deine echten Daten.</div>' : "";
+const DAY = 864e5;
+const dt = s => new Date(s + "T12:00:00");
+const today = () => { const n = new Date(); n.setHours(12,0,0,0); return n; };
+const daysTo = s => Math.round((dt(s) - today()) / DAY);
+const fmtDate = s => dt(s).toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"});
+const fmtShort = s => dt(s).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"});
+const num = n => String(n).replace(".", ",");
+const ampelPill = a => a==="gut"?"":a==="warn"?"warn":a==="bad"?"bad":"mute";
 
 const done = new Set(store.get("done", []));
-D.plan.phasen.forEach(p => p.schritte.forEach(s => { if (s.erledigt) done.add(s.id); }));
-const allSteps = () => D.plan.phasen.flatMap(p => p.schritte);
+let tab = (location.hash||"#uebersicht").slice(1);
+const TABS = [["uebersicht","Übersicht"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"]];
 
-let tab = (location.hash||"#symptome").slice(1);
-let symFilter = "Alle";
-
-const TABS = [
-  ["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["werte","Blutwerte"],["recherche","Recherche"]
-];
-
-function renderStats(){
-  const steps = allSteps(), n = steps.filter(s=>done.has(s.id)).length;
-  const open = D.recherche.filter(r=>r.status!=="geklärt").length;
-  $("#stats").innerHTML = [
-    [D.symptome.length,"Symptome"],[D.supplemente.length,"Supplemente"],
-    [n+"/"+steps.length,"Plan-Schritte"],[open,"Offene Fragen"]
-  ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+function currentPhase(){
+  const t = today();
+  return D.plan.phasen.find(p => t >= dt(p.von) && t <= dt(p.bis)) || null;
+}
+function nextTermine(n){
+  const t = today();
+  return D.plan.termine.filter(x => dt(x.ende||x.start) >= t).sort((a,b)=>a.start.localeCompare(b.start)).slice(0,n);
+}
+function termineList(list){
+  const t = today();
+  return `<ul class="tl">${list.map(x=>{
+    const past = dt(x.ende||x.start) < t;
+    const d = fmtShort(x.start) + (x.ende ? "–"+fmtShort(x.ende) : "");
+    const st = x.status==="gebucht"?"": x.status==="Frist"?"bad" : x.status==="geplant"?"mute":"warn";
+    return `<li class="${past?"past":""}"><span class="d">${d}</span><span>${esc(x.titel)}<br><span class="meta">${esc(x.typ)}</span></span><span class="pill ${st}">${esc(x.status)}</span></li>`;
+  }).join("")}</ul>`;
 }
 
-function renderTabs(){
-  $("#tabs").innerHTML = TABS.map(([id,l]) =>
-    `<button role="tab" aria-selected="${id===tab}" data-tab="${id}">${l}</button>`).join("");
+/* ---------- TSH-Diagramm ---------- */
+function tshChart(){
+  const T = D.tsh, W = 640, H = 270, L = 38, R = 16, Tp = 18, B = 34;
+  const ds = T.verlauf.map(p => dt(p.datum).getTime());
+  const x0 = ds[0] - 60*DAY, x1 = ds[ds.length-1] + 60*DAY, ymax = 12;
+  const X = t => L + (t-x0)/(x1-x0)*(W-L-R), Y = v => H-B-(v/ymax)*(H-B-Tp);
+  const path = T.verlauf.map((p,i)=>(i?"L":"M")+X(ds[i]).toFixed(1)+" "+Y(p.wert).toFixed(1)).join(" ");
+  const yt = [0,2,4,6,8,10,12];
+  const years = [2024,2025,2026].map(y=>new Date(y+"-01-01T12:00:00").getTime()).filter(t=>t>=x0&&t<=x1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="TSH-Verlauf 2024 bis 2026">
+    <rect x="${L}" y="${Y(T.referenz.max).toFixed(1)}" width="${W-L-R}" height="${(Y(T.referenz.min)-Y(T.referenz.max)).toFixed(1)}" fill="var(--lab)" opacity=".16"/>
+    <rect x="${L}" y="${Y(T.opt[1]).toFixed(1)}" width="${W-L-R}" height="${(Y(T.opt[0])-Y(T.opt[1])).toFixed(1)}" fill="var(--res)" opacity=".4"/>
+    ${yt.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end">${v}</text>`).join("")}
+    <line x1="${L}" x2="${W-R}" y1="${Y(T.okBis).toFixed(1)}" y2="${Y(T.okBis).toFixed(1)}" stroke="var(--res)" stroke-width="1.5" stroke-dasharray="2 3"/>
+    <line x1="${L}" x2="${W-R}" y1="${Y(T.grenze).toFixed(1)}" y2="${Y(T.grenze).toFixed(1)}" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="${W-R}" y="${(Y(T.grenze)-6).toFixed(1)}" text-anchor="end" style="fill:var(--bad)">Behandlungsgrenze ETA: 10</text>
+    <text x="${W-R}" y="${(Y(T.referenz.max)-5).toFixed(1)}" text-anchor="end" style="fill:var(--lab)">Labor-Referenz ${num(T.referenz.min)}–${num(T.referenz.max)}</text>
+    <text x="${W-R}" y="${(Y(T.okBis)-5).toFixed(1)}" text-anchor="end" style="fill:var(--res)">Eigene Recherche: ok bis ${num(T.okBis)}</text>
+    <text x="${L+6}" y="${(Y(T.opt[1])-4).toFixed(1)}" style="fill:var(--res)">optimal ${num(T.opt[0])}–${num(T.opt[1])}</text>
+    ${years.map(t=>`<line x1="${X(t).toFixed(1)}" x2="${X(t).toFixed(1)}" y1="${H-B}" y2="${H-B+5}" stroke="var(--muted)"/><text x="${X(t).toFixed(1)}" y="${H-B+18}" text-anchor="middle">${new Date(t).getFullYear()}</text>`).join("")}
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${T.verlauf.map((p,i)=>`<circle cx="${X(ds[i]).toFixed(1)}" cy="${Y(p.wert).toFixed(1)}" r="${i===ds.length-1?6:4}" fill="${i===ds.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2.2"/>
+      <text class="pt" x="${X(ds[i]).toFixed(1)}" y="${(Y(p.wert)-11).toFixed(1)}" text-anchor="middle">${num(p.wert)}</text>`).join("")}
+  </svg>`;
 }
 
-function sevClass(n){ return n>=7?"high":n>=4?"mid":""; }
-const trendPill = t => t==="besser" ? '<span class="pill">↓ besser</span>' : t==="schlechter" ? '<span class="pill bad">↑ schlechter</span>' : '<span class="pill mute">→ gleich</span>';
+/* ---------- Normwerte mit Herkunft ---------- */
+const STUFE = {referenz:"Referenz", ok:"ok", optimal:"optimal"};
+const fmtN = n => num(+Number(n).toFixed(2));
+const rangeTxt = n => n.orig ? n.orig : (n.min==null ? "bis "+fmtN(n.max) : n.max==null ? "ab "+fmtN(n.min) : fmtN(n.min)+"–"+fmtN(n.max));
+const inRange = (v,n) => (n.min==null||v>=n.min) && (n.max==null||v<=n.max);
+const labFor = d => d >= "2026-01-01" ? "Bioscientia" : "Praxis Königsbach-Stein";
+function lanes(normen, value, einheit){
+  if(!normen.length) return "";
+  const nums = normen.flatMap(n=>[n.min,n.max]).filter(x=>x!=null).concat(value!=null?[value]:[]);
+  let lo = Math.min(...nums), hi = Math.max(...nums); const span = (hi-lo)||1;
+  lo = Math.max(0, lo-span*0.06); hi = hi+span*0.08;
+  const pc = x => Math.max(0, Math.min(100, (x-lo)/(hi-lo)*100));
+  const order = {labor:0, recherche:1, extern:2}, so = {referenz:0, ok:1, optimal:2};
+  const sorted = [...normen].sort((a,b)=>(order[a.typ]-order[b.typ])||(so[a.stufe]-so[b.stufe]));
+  return `<div class="lanes">
+    ${value!=null?`<div class="mk" style="left:${pc(value)}%"><b>${fmtN(value)}</b></div>`:""}
+    ${sorted.map(n=>{
+      const a = n.min==null?0:pc(n.min), b = n.max==null?100:pc(n.max);
+      const st = value==null ? "" : inRange(value,n) ? '<span class="ok" style="color:var(--good)">✓</span>' : '<span class="ok" style="color:var(--bad)">✗</span>';
+      return `<div class="lane src ${n.typ}"><div class="lh"><span class="src-row"><span class="chip">${n.typ==="labor"?"Labor":n.typ==="recherche"?"Eigene Recherche":esc(n.typ)}</span><span class="meta">${esc(n.typ==="labor"?n.quelle:STUFE[n.stufe])}${n.typ==="labor"?" · "+STUFE[n.stufe]:""}</span></span>
+        <span class="rng">${esc(rangeTxt(n))}${n.unsicher?" *":""} ${st}</span></div>
+        <div class="tr"><div class="bd ${n.stufe}" style="left:${a}%;width:${Math.max(1.5,b-a)}%"></div></div></div>`;
+    }).join("")}
+    <div class="axis"><span>${fmtN(lo)}</span><span>${esc(einheit)}</span><span>${fmtN(hi)}</span></div>
+  </div>`;
+}
+function histTable(verlauf, einheit, valFn){
+  return `<table class="hist">${[...verlauf].reverse().map(p=>{ const d=valFn(p)[0], v=valFn(p)[1];
+    return `<tr><td>${fmtDate(d)}</td><td><span class="chip src labor">${esc(labFor(d))}</span></td><td>${num(v)} ${esc(einheit)}</td></tr>`; }).join("")}</table>`;
+}
+function spark(w){
+  const pts = w.verlauf; if(pts.length<2) return "";
+  const ref = (w.normen.filter(n=>n.typ==="labor")).slice(-1)[0];
+  const Wd=300,H=60,pad=8, vals=pts.map(p=>p[1]);
+  const lo=Math.min(...vals, ref?ref.min:Infinity)*0.95, hi=Math.max(...vals, ref?ref.max:-Infinity)*1.05;
+  const t0=dt(pts[0][0]).getTime(), t1=dt(pts[pts.length-1][0]).getTime();
+  const X=d=>pad+(dt(d).getTime()-t0)/(t1-t0||1)*(Wd-2*pad), Y=v=>H-pad-(v-lo)/(hi-lo)*(H-2*pad);
+  const path=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
+  const band = ref ? `<rect x="0" y="${Y(ref.max).toFixed(1)}" width="${Wd}" height="${Math.max(0,Y(ref.min)-Y(ref.max)).toFixed(1)}" fill="var(--lab)" opacity=".15"/>` : "";
+  return `<svg class="spark" viewBox="0 0 ${Wd} ${H}" role="img" aria-label="Verlauf ${esc(w.name)}">${band}
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>`<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${i===pts.length-1?5:3.2}" fill="${i===pts.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`).join("")}</svg>`;
+}
+
+/* ---------- Views ---------- */
+function viewUebersicht(){
+  const dl = daysTo(D.entscheidung), start = dt(D.plan.phasen[0].von), end = dt(D.entscheidung);
+  const pct = Math.max(0, Math.min(100, Math.round((today()-start)/(end-start)*100)));
+  const ph = currentPhase(), last = D.tsh.verlauf[D.tsh.verlauf.length-1];
+  const open = D.plan.todos.filter(t=>t.gruppe==="Nächste Schritte" && !done.has(t.id));
+  return `<h2>Übersicht</h2><p class="lead">${esc(D.plan.ziel)} ${esc(D.plan.regel)}</p>
+  <div class="grid2">
+    <section class="card">
+      <div class="lbl" style="margin-top:0">Bis zur Entscheidung am ${fmtDate(D.entscheidung)}</div>
+      <div class="big">${dl} <span style="font:500 1rem var(--body);color:var(--muted)">Tage</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="meta">${pct} % des Plans vorbei${ph?" · Phase "+esc(ph.titel):""}</div>
+      <div class="phases">${D.plan.phasen.map(p=>`<div class="ph ${ph&&ph.titel===p.titel?"now":""}"><b>${esc(p.titel)}</b>${esc(p.zeitraum)}</div>`).join("")}</div>
+    </section>
+    <section class="card">
+      <h3>Nächste Termine</h3>${termineList(nextTermine(4))}
+    </section>
+  </div>
+  <h3 class="sec">TSH-Verlauf</h3>
+  <section class="card">
+    <div class="val"><b>${num(last.wert)}</b><small>mIU/l am ${fmtDate(last.datum)} · Referenz ${num(D.tsh.referenz.min)}–${num(D.tsh.referenz.max)}</small></div>
+    ${tshChart()}
+    <p class="meta">${esc(D.tsh.einordnung)}</p>
+  </section>
+  <div class="grid2" style="margin-top:14px">
+    <section class="card"><h3>Entscheidungskriterium</h3>
+      <div class="lbl">Keine Tablette, wenn</div><p>${esc(D.plan.kriterien.keineTablette)}</p>
+      <div class="lbl">Sonst</div><p>${esc(D.plan.kriterien.sonst)}</p></section>
+    <section class="card"><h3>Als Nächstes zu tun (${open.length})</h3>
+      ${open.slice(0,4).map(t=>`<div class="step" style="cursor:default"><span>${esc(t.text)}</span></div>`).join("")||'<p class="meta">Alles erledigt.</p>'}
+      <p class="meta" style="margin-top:8px"><a href="#plan">Alle im Tab „Mein Plan“</a></p></section>
+  </div>`;
+}
 
 function viewSymptome(){
-  const areas = ["Alle", ...new Set(D.symptome.map(s=>s.bereich))];
-  const list = D.symptome.filter(s => symFilter==="Alle" || s.bereich===symFilter).sort((a,b)=>b.staerke-a.staerke);
-  return `<h2>Symptome</h2><p class="lead">Was gerade da ist, wie stark, und wohin es sich entwickelt. Sortiert nach Stärke.</p>
-  ${exNote(D.symptome)}
-  <div class="filters">${areas.map(a=>`<button class="chip" aria-pressed="${a===symFilter}" data-filter="${esc(a)}">${esc(a)}</button>`).join("")}</div>
-  <div class="grid">${list.map(s=>`
-    <article class="card ${s.beispiel?"example":""}">
-      <div class="row"><span class="pill mute">${esc(s.bereich)}</span>${trendPill(s.trend)}</div>
-      <h3>${esc(s.name)}</h3>
-      <div class="bar ${sevClass(s.staerke)}" role="img" aria-label="Stärke ${s.staerke} von 10"><i style="width:${s.staerke*10}%"></i></div>
-      <div class="meta">Stärke ${s.staerke}/10${s.seit?" · seit "+fmtMonth(s.seit):""}</div>
-      ${s.ausloeser?`<div class="lbl">Auslöser</div><p>${esc(s.ausloeser)}</p>`:""}
-      ${s.notiz?`<div class="lbl">Notiz</div><p>${esc(s.notiz)}</p>`:""}
-    </article>`).join("")}</div>`;
+  const z = D.zyklus, tag = Math.round((today()-dt(z.letztePeriode))/DAY)+1;
+  const n1 = new Date(dt(z.letztePeriode).getTime()+z.laenge[0]*DAY), n2 = new Date(dt(z.letztePeriode).getTime()+z.laenge[1]*DAY);
+  const f = d => d.toLocaleDateString("de-DE",{day:"numeric",month:"long"});
+  return `<h2>Symptome</h2><p class="lead">Was gerade da ist, nach Bereichen. Dazu der Zyklus, weil die Beschwerden in Woche 3–4 zunehmen.</p>
+  <section class="card" style="margin-bottom:14px">
+    <div class="row"><span class="pill">Zyklus</span><span class="meta">Länge ${z.laenge[0]}–${z.laenge[1]} Tage</span></div>
+    <div class="val"><b>Tag ${tag}</b><small>Periode begann am ${fmtDate(z.letztePeriode)}</small></div>
+    <div class="bar"><i style="width:${Math.min(100,Math.round(tag/z.laenge[1]*100))}%"></i></div>
+    <div class="meta">Nächste Periode ca. ${f(n1)} bis ${f(n2)} · Lutealphasen-Hormone: ${esc(z.lutealphase)}</div>
+  </section>
+  <div class="grid">${D.symptome.map(s=>`
+    <article class="card"><h3>${esc(s.bereich)}</h3><ul class="plain">${s.punkte.map(p=>`<li>${esc(p)}</li>`).join("")}</ul></article>`).join("")}</div>`;
 }
 
 function viewSupp(){
-  const slots = ["Morgens","Mittags","Abends","Nach Bedarf"];
-  return `<h2>Meine aktuellen Supplemente</h2><p class="lead">Der Tagesablauf auf einen Blick, darunter jedes Präparat mit Zweck und Notizen.</p>
-  ${exNote(D.supplemente)}
-  <div class="day">${slots.map(t=>{
-    const items = D.supplemente.filter(s=>s.zeit===t);
-    return `<section class="card slot"><h3>${t}</h3>${items.length?`<ul>${items.map(s=>`<li><b>${esc(s.name)}</b><br><span class="meta">${esc(s.dosis)}${s.mitEssen?" · mit Essen":""}</span></li>`).join("")}</ul>`:'<p class="empty">Nichts geplant</p>'}</section>`;
-  }).join("")}</div>
-  <div class="grid">${D.supplemente.map(s=>`
-    <article class="card ${s.beispiel?"example":""}">
-      <div class="row"><span class="pill">${esc(s.zeit)}</span>${s.mitEssen?'<span class="pill mute">mit Essen</span>':""}</div>
-      <h3>${esc(s.name)}</h3>
-      <div class="meta">${esc(s.dosis)}${s.seit?" · seit "+fmtMonth(s.seit):""}${s.marke?" · "+esc(s.marke):""}</div>
-      <div class="lbl">Wofür</div><p>${esc(s.zweck)}</p>
-      ${s.notiz?`<div class="lbl">Notiz</div><p>${esc(s.notiz)}</p>`:""}
-    </article>`).join("")}</div>`;
+  const sets = [["aktiv","Aktuell aktiv",""],["pausiert","Pausiert","warn"],["vorschlag","Vorschlag, nicht entschieden","mute"]];
+  return `<h2>Supplemente und Kost</h2><p class="lead">Was ich gerade nehme, was pausiert ist und was noch zur Entscheidung steht.</p>
+  ${sets.map(([k,l,c])=>{ const items=D.einnahme.filter(e=>e.status===k); return `<h3 class="sec" style="margin-top:${k==="aktiv"?0:30}px">${l} (${items.length})</h3>
+    <div class="grid">${items.map(e=>`<article class="card"><div class="row"><span class="pill ${c}">${l.split(",")[0]}</span></div>
+      <h3>${esc(e.name)}</h3>${e.dosis?`<div class="meta">${esc(e.dosis)}</div>`:""}${e.notiz?`<p style="margin-top:8px">${esc(e.notiz)}</p>`:""}</article>`).join("")}</div>`; }).join("")}
+  <h3 class="sec">Kost und Lebensstil</h3>
+  <section class="card"><ul class="plain">${D.kost.map(k=>`<li>${esc(k)}</li>`).join("")}</ul></section>`;
 }
 
 function viewPlan(){
-  const steps = allSteps(), n = steps.filter(s=>done.has(s.id)).length, pct = steps.length?Math.round(n/steps.length*100):0;
+  const k = D.plan.kriterien, groups = ["Nächste Schritte","Offene Fragen"];
   return `<h2>Mein Plan</h2><p class="lead">${esc(D.plan.ziel)}</p>
-  ${D.plan.beispiel?'<div class="note">Das ist ein Beispiel-Plan. Trage deinen freigegebenen Plan in <code>data.js</code> ein.</div>':""}
-  <div class="approved card">
-    <span class="pill">✓ ${esc(D.plan.status)}</span>
-    <span class="meta">am ${fmtDate(D.plan.freigegeben)}</span>
-    <div class="progress"><div class="bar"><i style="width:${pct}%"></i></div><div class="meta">${n} von ${steps.length} Schritten erledigt (${pct}%)</div></div>
-  </div>
-  ${D.plan.phasen.map(p=>`
-    <section class="card phase">
-      <header><h3>${esc(p.titel)}</h3><span class="meta">${esc(p.zeitraum)}</span></header>
-      ${p.schritte.map(s=>`<label class="step ${done.has(s.id)?"done":""}"><input type="checkbox" data-step="${esc(s.id)}" ${done.has(s.id)?"checked":""}><span>${esc(s.text)}</span></label>`).join("")}
-    </section>`).join("")}`;
+  <div class="row"><span class="pill">✓ ${esc(D.plan.status)}</span><span class="meta">Stand ${fmtDate(D.plan.stand)} · ${esc(D.plan.regel)}</span></div>
+  <h3 class="sec">Termine und Zeitplan</h3>
+  <section class="card">${termineList(D.plan.termine)}</section>
+  <h3 class="sec">To-do</h3>
+  <div class="grid2">${groups.map(g=>{ const items=D.plan.todos.filter(t=>t.gruppe===g), n=items.filter(t=>done.has(t.id)).length;
+    return `<section class="card"><h3>${g} <span class="meta">${n}/${items.length}</span></h3>${items.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span>${esc(t.text)}</span></label>`).join("")}</section>`; }).join("")}</div>
+  <h3 class="sec">Entscheidung am ${fmtDate(D.entscheidung)}</h3>
+  <section class="card scroll"><table class="t"><tr><th></th><th>Beschwerden ≥ 50 % besser</th><th>Beschwerden kaum besser</th></tr>
+    ${k.matrix.map(r=>`<tr><td><b>${esc(r.tsh)}</b></td><td>${esc(r.besser)}</td><td>${esc(r.kaum)}</td></tr>`).join("")}</table></section>
+  <h3 class="sec">Nicht bis Juli warten</h3>
+  <div class="grid">${D.plan.sicherheit.map(s=>`<article class="card"><span class="pill ${s.stufe}">${s.stufe==="bad"?"Sofort":"Zeitnah"}</span><h3 style="margin-top:8px">${esc(s.anlass)}</h3><p>${esc(s.handlung)}</p></article>`).join("")}</div>
+  <h3 class="sec">Ärzte und Praxen</h3>
+  <div class="grid">${D.plan.praxen.map(p=>`<article class="card"><div class="meta">${esc(p.rolle)}</div><h3>${esc(p.name)}</h3><p>${esc(p.info)}</p></article>`).join("")}</div>
+  <p class="meta" style="margin-top:10px">Praxisangaben stammen aus Verzeichnissen. Vor dem Anruf prüfen.</p>`;
 }
 
-function viewRecherche(){
-  const cols = [["offen","Noch offen","warn"],["läuft","In Recherche",""],["geklärt","Geklärt","mute"]];
-  const prio = {hoch:"bad",mittel:"warn",niedrig:"mute"}, order={hoch:0,mittel:1,niedrig:2};
-  return `<h2>Recherche</h2><p class="lead">Alles, was ich noch genauer prüfen will. Jede Frage mit Vermutung und nächstem Schritt.</p>
-  ${exNote(D.recherche)}
-  <div class="board">${cols.map(([k,l,c])=>{
-    const items = D.recherche.filter(r=>r.status===k).sort((a,b)=>order[a.prio]-order[b.prio]);
-    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`
-      <article class="card ${r.beispiel?"example":""}">
-        <div class="row"><span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
-        <p class="q">${esc(r.frage)}</p>
-        ${r.vermutung?`<div class="lbl">Bisherige Vermutung</div><p>${esc(r.vermutung)}</p>`:""}
-        ${r.naechsterSchritt?`<div class="lbl">Nächster Schritt</div><p>${esc(r.naechsterSchritt)}</p>`:""}
-        ${(r.quellen||[]).length?`<div class="lbl">Quellen</div><p>${r.quellen.map(q=>/^https?:/.test(q.url||"")?`<a href="${esc(q.url)}" target="_blank" rel="noopener">${esc(q.titel||q.url)}</a>`:esc(q.titel||"")).join("<br>")}</p>`:""}
-      </article>`).join("")||'<p class="empty">Keine Einträge</p>'}</section>`;
-  }).join("")}</div>`;
-}
-
-function bwStatus(b){
-  const v=b.verlauf[b.verlauf.length-1].wert;
-  if(v>=b.optimal.min&&v<=b.optimal.max) return ["im Optimum",""];
-  if(v>=b.referenz.min&&v<=b.referenz.max) return ["im Laborbereich","warn"];
-  return ["außerhalb","bad"];
-}
-function spark(b){
-  const pts=b.verlauf, W=300, H=70, pad=8;
-  const lo=Math.min(b.optimal.min,...pts.map(p=>p.wert))*0.9, hi=Math.max(b.optimal.max,...pts.map(p=>p.wert))*1.05;
-  const y=v=>H-pad-(v-lo)/(hi-lo)*(H-2*pad);
-  const x=i=>pts.length===1?W/2:pad+i/(pts.length-1)*(W-2*pad);
-  const path=pts.map((p,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(p.wert).toFixed(1)).join(" ");
-  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf ${esc(b.name)}">
-    <rect x="0" y="${y(b.optimal.max).toFixed(1)}" width="${W}" height="${(y(b.optimal.min)-y(b.optimal.max)).toFixed(1)}" fill="var(--good)" opacity=".18"/>
-    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
-    ${pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.wert).toFixed(1)}" r="${i===pts.length-1?5:3.2}" fill="${i===pts.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`).join("")}
-  </svg>`;
-}
 function viewWerte(){
-  return `<h2>Blutwerte</h2><p class="lead">Mein Verlauf im Vergleich zum Laborbereich und zum recherchierten Optimalbereich.</p>
-  ${exNote(D.blutwerte)}
-  <div class="legend"><span><i style="background:var(--bad-soft)"></i>außerhalb</span><span><i style="background:var(--warn-soft)"></i>Laborbereich</span><span><i style="background:var(--good);opacity:.55"></i>Optimalbereich</span><span><i style="background:var(--ink)"></i>aktueller Wert</span></div>
-  <div class="grid">${D.blutwerte.map(b=>{
-    const last=b.verlauf[b.verlauf.length-1], prev=b.verlauf[b.verlauf.length-2];
-    const lo=Math.min(b.referenz.min,last.wert)*0.8, hi=Math.max(b.referenz.max,last.wert)*1.1;
-    const pc=v=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
-    const [st,cl]=bwStatus(b);
-    const diff=prev?last.wert-prev.wert:0, arrow=!prev?"":diff>0?"▲":diff<0?"▼":"■";
-    return `<article class="card ${b.beispiel?"example":""}">
-      <div class="row"><span class="pill ${cl}">${st}</span></div>
-      <h3>${esc(b.name)}</h3>
-      <div class="val"><b>${last.wert}</b><small>${esc(b.einheit)} ${arrow?`· ${arrow} ${Math.abs(+diff.toFixed(2))} seit ${fmtDate(prev.datum)}`:""}</small></div>
-      <div class="range">
-        <div class="ref" style="left:${pc(b.referenz.min)}%;width:${pc(b.referenz.max)-pc(b.referenz.min)}%"></div>
-        <div class="opt" style="left:${pc(b.optimal.min)}%;width:${pc(b.optimal.max)-pc(b.optimal.min)}%"></div>
-        <div class="mark" style="left:${pc(last.wert)}%"></div>
-      </div>
-      <div class="meta">Labor ${b.referenz.min}–${b.referenz.max} · Optimal ${b.optimal.min}–${b.optimal.max} ${esc(b.einheit)}</div>
-      ${b.quelle?`<div class="meta">Quelle: ${/^https?:/.test(b.quelle)?`<a href="${esc(b.quelle)}" target="_blank" rel="noopener">${esc(b.quelle)}</a>`:esc(b.quelle)}</div>`:""}
-      ${spark(b)}
-      <table class="hist">${[...b.verlauf].reverse().map(p=>`<tr><td>${fmtDate(p.datum)}</td><td>${p.wert} ${esc(b.einheit)}</td></tr>`).join("")}</table>
-    </article>`;}).join("")}</div>`;
+  const last = D.tsh.verlauf[D.tsh.verlauf.length-1];
+  return `<h2>Werte</h2><p class="lead">Meine Messwerte im Verlauf. Zu jedem Wert zeige ich alle Normbereiche, die ich kenne, und woher sie stammen.</p>
+  <div class="card" style="margin-bottom:18px">
+    <div class="legend" style="margin-bottom:10px">
+      <span class="lg"><span class="chip src labor">Labor</span><span>Referenzbereich der Befunde (Praxis Königsbach-Stein 2024/25, Bioscientia 06/2026)</span></span>
+      <span class="lg"><span class="chip src recherche">Eigene Recherche</span><span>meine Tabelle mit „ok“ und „optimal“, Stand 19.11.2026</span></span>
+    </div>
+    <div class="legend" style="margin:0">
+      <span class="lg"><i style="opacity:.4;background:var(--muted)"></i>Referenz</span>
+      <span class="lg"><i style="opacity:.6;background:var(--muted)"></i>ok</span>
+      <span class="lg"><i style="background:var(--muted)"></i>optimal</span>
+      <span class="lg"><i style="width:3px;height:14px;background:var(--ink)"></i>mein Wert</span>
+      <span class="lg"><span style="color:var(--good)">✓</span>/<span style="color:var(--bad)">✗</span>&nbsp;im Bereich / außerhalb</span>
+      <span class="lg">* Richtung aus Tabelle abgeleitet</span>
+    </div>
+  </div>
+  <section class="card"><h3>TSH</h3>
+    <div class="val"><b>${num(last.wert)}</b><small>mIU/l am ${fmtDate(last.datum)}</small></div>
+    ${tshChart()}
+    ${lanes(D.tsh.normen, last.wert, D.tsh.einheit)}
+    <div class="scroll">${histTable(D.tsh.verlauf, "mIU/l", p=>[p.datum,p.wert])}</div></section>
+  <h3 class="sec">Weitere Werte</h3>
+  <div class="grid">${D.werte.map(w=>{
+    const v=w.verlauf[w.verlauf.length-1], prev=w.verlauf[w.verlauf.length-2];
+    const diff=prev?v[1]-prev[1]:0, arrow=!prev?"":diff>0?"▲":diff<0?"▼":"■";
+    return `<article class="card">
+      <div class="row"><span class="pill ${ampelPill(w.ampel)}">${esc(w.bewertung)}</span></div>
+      <h3>${esc(w.name)}</h3>
+      ${v?`<div class="val"><b>${num(v[1])}</b><small>${esc(w.einheit)} · ${fmtShort(v[0])}${arrow?` · ${arrow} ${num(+Math.abs(diff).toFixed(3))}`:""}</small></div>`:`<div class="meta">Noch kein Messwert${w.einheit?" ("+esc(w.einheit)+")":""}</div>`}
+      ${lanes(w.normen, v?v[1]:null, w.einheit)}
+      ${w.hinweis?`<div class="meta" style="margin-top:6px">${esc(w.hinweis)}</div>`:""}
+      ${spark(w)}
+      ${w.verlauf.length?histTable(w.verlauf, w.einheit, p=>p):""}
+    </article>`;}).join("")}</div>
+  <h3 class="sec">Weitere Befunde 10.06.2026 <span class="chip src labor" style="margin-left:6px">Bioscientia</span></h3>
+  <section class="card scroll"><table class="t"><tr><th>Wert</th><th>Ergebnis</th><th>Bewertung</th></tr>
+    ${D.weitereNormal.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></section>`;
 }
 
-const VIEWS = {symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
+function evBar(e){
+  const n = {stark:3,mittel:2,schwach:1,keine:0,risiko:1}[e] ?? 0;
+  const lbl = {stark:"Evidenz stark",mittel:"Evidenz mittel",schwach:"Evidenz schwach",keine:"keine Evidenz",risiko:"Risiko"}[e];
+  return `<div class="row"><span class="ev ${e==="risiko"?"risiko":""}" aria-hidden="true">${[1,2,3].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span><span class="meta">${lbl}</span></div>`;
+}
+function viewRecherche(){
+  const cols = [["offen","Noch offen"],["läuft","In Recherche"],["geklärt","Geklärt"]];
+  const prio = {hoch:"bad",mittel:"warn",niedrig:"mute"}, order = {hoch:0,mittel:1,niedrig:2};
+  return `<h2>Recherche</h2><p class="lead">Oben, was ich schon recherchiert habe. Darunter alles, was ich noch genauer prüfen muss.</p>
+  <h3 class="sec" style="margin-top:0">Maßnahmen und Studienlage</h3>
+  <p class="meta" style="margin-bottom:12px">Für keine naturheilkundliche Maßnahme ist belegt, dass sie ein TSH von 7–10 senkt. Für Stimmung und Zyklus ist die Lage besser. Die Evidenz-Balken sind eine grobe Einstufung aus den Studienangaben.</p>
+  <div class="grid">${D.massnahmen.map(m=>`<article class="card"><h3>${esc(m.name)}</h3>${evBar(m.evidenz)}
+    <div class="lbl">Studienlage</div><p>${esc(m.studie)}</p><div class="lbl">Einordnung</div><p>${esc(m.einordnung)}</p></article>`).join("")}</div>
+  <h3 class="sec">Noch genauer zu recherchieren</h3>
+  <div class="board">${cols.map(([k,l])=>{ const items=D.offen.filter(r=>r.status===k).sort((a,b)=>order[a.prio]-order[b.prio]);
+    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`<article class="card">
+      <div class="row"><span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
+      <p class="q">${esc(r.frage)}</p>
+      ${r.vermutung?`<div class="lbl">Bisheriger Stand</div><p>${esc(r.vermutung)}</p>`:""}
+      ${r.naechsterSchritt?`<div class="lbl">Nächster Schritt</div><p>${esc(r.naechsterSchritt)}</p>`:""}</article>`).join("")||'<p class="meta">Keine Einträge</p>'}</section>`; }).join("")}</div>
+  <h3 class="sec">Wichtige Quellen</h3>
+  <section class="card"><ul class="plain">${D.quellen.map(q=>`<li><a href="${esc(q[1])}" target="_blank" rel="noopener">${esc(q[0])}</a></li>`).join("")}</ul></section>`;
+}
+
+function renderStats(){
+  const open = D.plan.todos.filter(t=>t.gruppe==="Nächste Schritte" && !done.has(t.id)).length;
+  const nxt = nextTermine(1)[0];
+  $("#stats").innerHTML = [
+    [daysTo(D.entscheidung), "Tage bis 23.07.27"],
+    [num(D.tsh.verlauf[D.tsh.verlauf.length-1].wert), "TSH aktuell"],
+    [nxt ? Math.max(0,daysTo(nxt.start))+" T" : "–", "bis nächster Termin"],
+    [open, "To-dos offen"]
+  ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+}
+function viewArzt(){
+  const A = D.arzt, all = [...A.messen, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
+  const find = name => name==="tsh" ? {verlauf:D.tsh.verlauf.map(p=>[p.datum,p.wert]), normen:D.tsh.normen, einheit:D.tsh.einheit} : D.werte.find(w=>w.name===name);
+  const row = m => {
+    const w = find(m.ref), v = w && w.verlauf.length ? w.verlauf[w.verlauf.length-1] : null;
+    const opt = w ? w.normen.filter(x=>x.typ==="recherche"&&x.stufe==="optimal")[0] : null;
+    return `<label class="step ${done.has(m.id)?"done":""}"><input type="checkbox" data-step="${esc(m.id)}" ${done.has(m.id)?"checked":""}>
+      <span><b>${esc(m.name)}</b>${m.einheit?` <span class="meta">${esc(m.einheit)}</span>`:""}
+      <span class="meta" style="display:block">${v?"Zuletzt "+num(v[1])+" am "+fmtShort(v[0])+" ("+labFor(v[0])+")":"Noch nie gemessen"}${opt?" · mein Ziel "+esc(rangeTxt(opt)):""}</span>
+      ${m.hinweis?`<span class="meta" style="display:block">${esc(m.hinweis)}</span>`:""}</span></label>`;
+  };
+  return `<h2>Arzt</h2><p class="lead">Was ich beim nächsten Termin besprechen und messen lassen will.</p>
+  <div class="row"><span class="pill warn">zu buchen</span><span class="meta">${esc(A.termin)} · ${n} von ${all.length} erledigt</span></div>
+  <div class="grid2">
+    <section class="card"><h3>Blutwerte messen lassen</h3>${A.messen.map(row).join("")}</section>
+    <div style="display:grid;gap:14px;align-content:start">
+      <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}</span></label>`).join("")}</section>
+      <section class="card"><h3>Vorbereitung</h3><ul class="plain">${A.vorbereitung.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></section>
+    </div>
+  </div>`;
+}
+const VIEWS = {arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
 function render(){
-  if(!VIEWS[tab]) tab="symptome";
-  $("#updated").textContent = fmtDate(D.updated);
-  renderTabs(); renderStats();
+  if(!VIEWS[tab]) tab="uebersicht";
+  $("#sub").textContent = D.titel + " · Stand " + fmtDate(D.stand);
+  $("#tabs").innerHTML = TABS.map(([id,l])=>`<button role="tab" aria-selected="${id===tab}" data-tab="${id}">${l}</button>`).join("");
+  renderStats();
   $("#view").innerHTML = VIEWS[tab]();
 }
 document.addEventListener("click", e=>{
-  const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); return; }
-  const f=e.target.closest("[data-filter]"); if(f){ symFilter=f.dataset.filter; render(); }
+  const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
 });
 document.addEventListener("change", e=>{
   const id=e.target.dataset?.step; if(!id) return;
   e.target.checked ? done.add(id) : done.delete(id);
   store.set("done",[...done]); render();
 });
-window.addEventListener("hashchange",()=>{ tab=location.hash.slice(1); render(); });
-render();
+window.addEventListener("hashchange",()=>{ if(!D) return; tab=location.hash.slice(1); render(); window.scrollTo(0,0); });
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function unlock(pw){
+  const e = await (await fetch("data.enc.json")).json();
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(e.salt), iterations:e.iter, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(e.iv)}, key, b64(e.ct));
+  D = JSON.parse(new TextDecoder().decode(pt));
+  D.plan.todos.forEach(()=>{});
+  $("#lock").hidden = true; $("#app").hidden = false; render();
+}
+$("#lockForm").addEventListener("submit", async ev => {
+  ev.preventDefault(); const msg = $("#lockMsg"); msg.textContent = "Prüfe …";
+  try { await unlock($("#pw").value); $("#pw").value = ""; msg.textContent = ""; }
+  catch { msg.textContent = "Falsches Passwort."; }
+});
 </script>
 </body>
 </html>
