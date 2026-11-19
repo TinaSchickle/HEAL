@@ -122,6 +122,10 @@ table.t td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-alig
 .lg{display:inline-flex;gap:6px;align-items:center}
 .lg i{width:22px;height:8px;border-radius:4px;background:var(--lab)}
 .src-row{display:flex;gap:6px;align-items:center}
+.card.xx{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.day-head{display:flex;gap:12px 24px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.day-head .bar{flex:1;min-width:160px;margin:0}
+.dtl{display:block;font-size:.82rem;color:var(--muted)}
 .foot{margin-top:40px;color:var(--muted);font-size:.8rem}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
 </style>
@@ -157,10 +161,23 @@ const fmtDate = s => dt(s).toLocaleDateString("de-DE",{day:"numeric",month:"long
 const fmtShort = s => dt(s).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"});
 const num = n => String(n).replace(".", ",");
 const ampelPill = a => a==="gut"?"":a==="warn"?"warn":a==="bad"?"bad":"mute";
+/* Bewertung nur nach eigenen Zielwerten (Quelle "recherche"), nie nach Laborreferenz */
+function rate(normen, v){
+  const R = normen.filter(n=>n.typ==="recherche");
+  const ok = R.filter(n=>n.stufe==="ok"), opt = R.filter(n=>n.stufe==="optimal");
+  if(!R.length) return ["keine eigenen Zielwerte","mute"];
+  if(v==null) return ["nicht gemessen","mute"];
+  if(opt.some(n=>inRange(v,n))) return ["im Optimum",""];
+  const dir = arr => { const lo=Math.min(...arr.map(n=>n.min??-Infinity)), hi=Math.max(...arr.map(n=>n.max??Infinity)); return v<lo?"unter":v>hi?"über":""; };
+  if(ok.some(n=>inRange(v,n))){ const d=opt.length?dir(opt):""; return [d?"ok, "+d+" Optimum":"ok","warn"]; }
+  if(ok.length){ const d=dir(ok); return [(d||"außerhalb")+" ok","bad"]; }
+  return [(dir(opt)||"außerhalb")+" Optimum","warn"];
+}
+const ratePill = (normen, v) => { const [t,c] = rate(normen, v); return `<span class="pill ${c}">${esc(t)}</span>`; };
 
 const done = new Set(store.get("done", []));
 let tab = (location.hash||"#uebersicht").slice(1);
-const TABS = [["uebersicht","Übersicht"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"]];
+const TABS = [["uebersicht","Übersicht"],["daily","Daily Plan"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"]];
 
 function currentPhase(){
   const t = today();
@@ -322,8 +339,6 @@ function viewPlan(){
   <h3 class="sec">Entscheidung am ${fmtDate(D.entscheidung)}</h3>
   <section class="card scroll"><table class="t"><tr><th></th><th>Beschwerden ≥ 50 % besser</th><th>Beschwerden kaum besser</th></tr>
     ${k.matrix.map(r=>`<tr><td><b>${esc(r.tsh)}</b></td><td>${esc(r.besser)}</td><td>${esc(r.kaum)}</td></tr>`).join("")}</table></section>
-  <h3 class="sec">Nicht bis Juli warten</h3>
-  <div class="grid">${D.plan.sicherheit.map(s=>`<article class="card"><span class="pill ${s.stufe}">${s.stufe==="bad"?"Sofort":"Zeitnah"}</span><h3 style="margin-top:8px">${esc(s.anlass)}</h3><p>${esc(s.handlung)}</p></article>`).join("")}</div>
   <h3 class="sec">Ärzte und Praxen</h3>
   <div class="grid">${D.plan.praxen.map(p=>`<article class="card"><div class="meta">${esc(p.rolle)}</div><h3>${esc(p.name)}</h3><p>${esc(p.info)}</p></article>`).join("")}</div>
   <p class="meta" style="margin-top:10px">Praxisangaben stammen aus Verzeichnissen. Vor dem Anruf prüfen.</p>`;
@@ -346,7 +361,9 @@ function viewWerte(){
       <span class="lg">* Richtung aus Tabelle abgeleitet</span>
     </div>
   </div>
+  <p class="meta" style="margin-bottom:12px">Die Farbe der Bewertung richtet sich nur nach meinen eigenen Zielwerten, nicht nach den Laborreferenzen. Ohne eigene Zielwerte bleibt sie grau.</p>
   <section class="card"><h3>TSH</h3>
+    <div class="row">${ratePill(D.tsh.normen, last.wert)}</div>
     <div class="val"><b>${num(last.wert)}</b><small>mIU/l am ${fmtDate(last.datum)}</small></div>
     ${tshChart()}
     ${lanes(D.tsh.normen, last.wert, D.tsh.einheit)}
@@ -356,7 +373,7 @@ function viewWerte(){
     const v=w.verlauf[w.verlauf.length-1], prev=w.verlauf[w.verlauf.length-2];
     const diff=prev?v[1]-prev[1]:0, arrow=!prev?"":diff>0?"▲":diff<0?"▼":"■";
     return `<article class="card">
-      <div class="row"><span class="pill ${ampelPill(w.ampel)}">${esc(w.bewertung)}</span></div>
+      <div class="row">${ratePill(w.normen, v?v[1]:null)}</div>
       <h3>${esc(w.name)}</h3>
       ${v?`<div class="val"><b>${num(v[1])}</b><small>${esc(w.einheit)} · ${fmtShort(v[0])}${arrow?` · ${arrow} ${num(+Math.abs(diff).toFixed(3))}`:""}</small></div>`:`<div class="meta">Noch kein Messwert${w.einheit?" ("+esc(w.einheit)+")":""}</div>`}
       ${lanes(w.normen, v?v[1]:null, w.einheit)}
@@ -383,9 +400,9 @@ function viewRecherche(){
   <div class="grid">${D.massnahmen.map(m=>`<article class="card"><h3>${esc(m.name)}</h3>${evBar(m.evidenz)}
     <div class="lbl">Studienlage</div><p>${esc(m.studie)}</p><div class="lbl">Einordnung</div><p>${esc(m.einordnung)}</p></article>`).join("")}</div>
   <h3 class="sec">Noch genauer zu recherchieren</h3>
-  <div class="board">${cols.map(([k,l])=>{ const items=D.offen.filter(r=>r.status===k).sort((a,b)=>order[a.prio]-order[b.prio]);
-    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`<article class="card">
-      <div class="row"><span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
+  <div class="board">${cols.map(([k,l])=>{ const items=D.offen.filter(r=>r.status===k).sort((a,b)=>(!!b.xx-!!a.xx)||order[a.prio]-order[b.prio]);
+    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`<article class="card ${r.xx?"xx":""}">
+      <div class="row">${r.xx?'<span class="pill" title="Dazu nochmal gelesen">xx · mehrfach gelesen</span>':""}<span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
       <p class="q">${esc(r.frage)}</p>
       ${r.vermutung?`<div class="lbl">Bisheriger Stand</div><p>${esc(r.vermutung)}</p>`:""}
       ${r.naechsterSchritt?`<div class="lbl">Nächster Schritt</div><p>${esc(r.naechsterSchritt)}</p>`:""}</article>`).join("")||'<p class="meta">Keine Einträge</p>'}</section>`; }).join("")}</div>
@@ -404,7 +421,7 @@ function renderStats(){
   ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
 }
 function viewArzt(){
-  const A = D.arzt, all = [...A.messen, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
+  const A = D.arzt, all = [...A.messen, ...A.termine, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
   const find = name => name==="tsh" ? {verlauf:D.tsh.verlauf.map(p=>[p.datum,p.wert]), normen:D.tsh.normen, einheit:D.tsh.einheit} : D.werte.find(w=>w.name===name);
   const row = m => {
     const w = find(m.ref), v = w && w.verlauf.length ? w.verlauf[w.verlauf.length-1] : null;
@@ -419,12 +436,22 @@ function viewArzt(){
   <div class="grid2">
     <section class="card"><h3>Blutwerte messen lassen</h3>${A.messen.map(row).join("")}</section>
     <div style="display:grid;gap:14px;align-content:start">
+      <section class="card"><h3>Termine vereinbaren</h3>${A.termine.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span><b>${esc(t.text)}</b>${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>
       <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}</span></label>`).join("")}</section>
       <section class="card"><h3>Vorbereitung</h3><ul class="plain">${A.vorbereitung.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></section>
     </div>
   </div>`;
 }
-const VIEWS = {arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
+const dayKey = () => "daily:" + new Date().toLocaleDateString("sv-SE");
+function viewDaily(){
+  const set = new Set(store.get(dayKey(), [])), all = D.daily.flatMap(g=>g.items), n = all.filter(i=>set.has(i.id)).length;
+  const pct = all.length ? Math.round(n/all.length*100) : 0;
+  const datum = new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
+  return `<h2>Daily Plan</h2><p class="lead">Was ich jeden Tag mache. Die Haken gelten nur für heute und beginnen morgen neu.</p>
+  <div class="day-head"><span class="pill">${esc(datum)}</span><div class="bar" role="img" aria-label="${n} von ${all.length} erledigt"><i style="width:${pct}%"></i></div><span class="meta">${n} von ${all.length} erledigt</span></div>
+  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>`;
+}
+const VIEWS = {daily:viewDaily,arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
 function render(){
   if(!VIEWS[tab]) tab="uebersicht";
   $("#sub").textContent = D.titel + " · Stand " + fmtDate(D.stand);
@@ -436,6 +463,8 @@ document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
 });
 document.addEventListener("change", e=>{
+  const day=e.target.dataset?.day;
+  if(day){ const s=new Set(store.get(dayKey(),[])); e.target.checked ? s.add(day) : s.delete(day); store.set(dayKey(),[...s]); render(); return; }
   const id=e.target.dataset?.step; if(!id) return;
   e.target.checked ? done.add(id) : done.delete(id);
   store.set("done",[...done]); render();
