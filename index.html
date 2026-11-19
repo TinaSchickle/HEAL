@@ -427,7 +427,7 @@ function renderStats(){
   ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
 }
 function viewArzt(){
-  const A = D.arzt, all = [...A.messen, ...A.termine, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
+  const A = D.arzt, all = [...A.messen, ...(A.zyklus||[]), ...A.termine, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
   const find = name => name==="tsh" ? {verlauf:D.tsh.verlauf.map(p=>[p.datum,p.wert]), normen:D.tsh.normen, einheit:D.tsh.einheit} : D.werte.find(w=>w.name===name);
   const row = m => {
     const w = m.ref ? find(m.ref) : null, v = w && w.verlauf.length ? w.verlauf[w.verlauf.length-1] : null;
@@ -440,7 +440,10 @@ function viewArzt(){
   return `<h2>Arzt</h2><p class="lead">Was ich beim nächsten Termin besprechen und messen lassen will.</p>
   <div class="row"><span class="pill warn">zu buchen</span><span class="meta">${esc(A.termin)} · ${n} von ${all.length} erledigt</span></div>
   <div class="grid2">
-    <section class="card"><h3>Blutwerte messen lassen</h3>${A.messen.map(row).join("")}</section>
+    <div style="display:grid;gap:14px;align-content:start">
+      <section class="card"><h3>Blutwerte messen lassen</h3>${A.messen.map(row).join("")}</section>
+      ${A.zyklus?`<section class="card"><h3>Zyklusabhängige Hormone</h3><p class="meta" style="margin-bottom:8px">${esc(A.zyklusHinweis)}</p>${A.zyklus.map(row).join("")}</section>`:""}
+    </div>
     <div style="display:grid;gap:14px;align-content:start">
       <section class="card"><h3>Termine vereinbaren</h3>${A.termine.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span><b>${esc(t.text)}</b>${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>
       <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}</span></label>`).join("")}</section>
