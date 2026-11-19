@@ -122,7 +122,13 @@ table.t td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-alig
 .lg{display:inline-flex;gap:6px;align-items:center}
 .lg i{width:22px;height:8px;border-radius:4px;background:var(--lab)}
 .src-row{display:flex;gap:6px;align-items:center}
-.card.xx{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card.nah{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.dot{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:.8rem;padding:2px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,var(--muted))}
+.dot.rot{--c:var(--bad)} .dot.gelb{--c:var(--warn)} .dot.gruen{--c:var(--good)}
+.dot .lb{font-weight:500;color:var(--muted)}
+.vals{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+.mail{font-variant-numeric:tabular-nums;user-select:all;word-break:break-all}
 .day-head{display:flex;gap:12px 24px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
 .day-head .bar{flex:1;min-width:160px;margin:0}
 .dtl{display:block;font-size:.82rem;color:var(--muted)}
@@ -177,7 +183,7 @@ const ratePill = (normen, v) => { const [t,c] = rate(normen, v); return `<span c
 
 const done = new Set(store.get("done", []));
 let tab = (location.hash||"#uebersicht").slice(1);
-const TABS = [["uebersicht","Übersicht"],["daily","Daily Plan"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"]];
+const TABS = [["uebersicht","Übersicht"],["daily","Daily Plan"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"],["wissen","Wissensbasis"],["personen","Personen"]];
 
 function currentPhase(){
   const t = today();
@@ -400,9 +406,9 @@ function viewRecherche(){
   <div class="grid">${D.massnahmen.map(m=>`<article class="card"><h3>${esc(m.name)}</h3>${evBar(m.evidenz)}
     <div class="lbl">Studienlage</div><p>${esc(m.studie)}</p><div class="lbl">Einordnung</div><p>${esc(m.einordnung)}</p></article>`).join("")}</div>
   <h3 class="sec">Noch genauer zu recherchieren</h3>
-  <div class="board">${cols.map(([k,l])=>{ const items=D.offen.filter(r=>r.status===k).sort((a,b)=>(!!b.xx-!!a.xx)||order[a.prio]-order[b.prio]);
-    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`<article class="card ${r.xx?"xx":""}">
-      <div class="row">${r.xx?'<span class="pill" title="Dazu nochmal gelesen">xx · mehrfach gelesen</span>':""}<span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
+  <div class="board">${cols.map(([k,l])=>{ const items=D.offen.filter(r=>r.status===k).sort((a,b)=>order[a.prio]-order[b.prio]);
+    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`<article class="card">
+      <div class="row"><span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
       <p class="q">${esc(r.frage)}</p>
       ${r.vermutung?`<div class="lbl">Bisheriger Stand</div><p>${esc(r.vermutung)}</p>`:""}
       ${r.naechsterSchritt?`<div class="lbl">Nächster Schritt</div><p>${esc(r.naechsterSchritt)}</p>`:""}</article>`).join("")||'<p class="meta">Keine Einträge</p>'}</section>`; }).join("")}</div>
@@ -424,11 +430,11 @@ function viewArzt(){
   const A = D.arzt, all = [...A.messen, ...A.termine, ...A.zusatz], n = all.filter(x=>done.has(x.id)).length;
   const find = name => name==="tsh" ? {verlauf:D.tsh.verlauf.map(p=>[p.datum,p.wert]), normen:D.tsh.normen, einheit:D.tsh.einheit} : D.werte.find(w=>w.name===name);
   const row = m => {
-    const w = find(m.ref), v = w && w.verlauf.length ? w.verlauf[w.verlauf.length-1] : null;
+    const w = m.ref ? find(m.ref) : null, v = w && w.verlauf.length ? w.verlauf[w.verlauf.length-1] : null;
     const opt = w ? w.normen.filter(x=>x.typ==="recherche"&&x.stufe==="optimal")[0] : null;
     return `<label class="step ${done.has(m.id)?"done":""}"><input type="checkbox" data-step="${esc(m.id)}" ${done.has(m.id)?"checked":""}>
       <span><b>${esc(m.name)}</b>${m.einheit?` <span class="meta">${esc(m.einheit)}</span>`:""}
-      <span class="meta" style="display:block">${v?"Zuletzt "+num(v[1])+" am "+fmtShort(v[0])+" ("+labFor(v[0])+")":"Noch nie gemessen"}${opt?" · mein Ziel "+esc(rangeTxt(opt)):""}</span>
+      <span class="meta" style="display:block">${v?"Zuletzt "+num(v[1])+" am "+fmtShort(v[0])+" ("+labFor(v[0])+")":(m.letzter||"Kein Wert vorhanden")}${opt?" · mein Ziel "+esc(rangeTxt(opt)):""}</span>
       ${m.hinweis?`<span class="meta" style="display:block">${esc(m.hinweis)}</span>`:""}</span></label>`;
   };
   return `<h2>Arzt</h2><p class="lead">Was ich beim nächsten Termin besprechen und messen lassen will.</p>
@@ -451,7 +457,41 @@ function viewDaily(){
   <div class="day-head"><span class="pill">${esc(datum)}</span><div class="bar" role="img" aria-label="${n} von ${all.length} erledigt"><i style="width:${pct}%"></i></div><span class="meta">${n} von ${all.length} erledigt</span></div>
   <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>`;
 }
-const VIEWS = {daily:viewDaily,arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
+function viewWissen(){
+  const K = D.wissen.kompass, E = D.wissen.einordnung;
+  const passt = {nah:["nächstliegend",""], zweite:["zweiter Kandidat","warn"], teilweise:["teilweise","warn"], nein:["passt nicht","mute"]};
+  const ord = {nah:0, zweite:1, teilweise:2, nein:3};
+  const cls = {rot:"rot", gelb:"gelb", "grün":"gruen"};
+  const dot = (l,v) => `<span class="dot ${cls[v[1]]}"><span class="lb">${l}</span> ${esc(v[0])}${v[2]?` <span class="lb">(${esc(v[2])})</span>`:""}</span>`;
+  const muster = [...K.muster].sort((a,b)=>ord[a.passt]-ord[b.passt]);
+  return `<h2>Wissensbasis</h2><p class="lead">Wissen, das ich sammle, mit Quelle. Aktuell der Schilddrüsen-Kompass und meine Auswertung damit.</p>
+  <h3 class="sec" style="margin-top:0">Meine Einordnung <span class="meta" style="text-transform:none;letter-spacing:0">· Stand ${fmtDate(E.stand)}</span></h3>
+  <section class="card">
+    <p class="meta" style="margin-bottom:10px">${esc(E.hinweis)}</p>
+    ${E.fazit.map(f=>`<p style="margin-bottom:8px">${esc(f)}</p>`).join("")}
+    <div class="scroll"><table class="t" style="margin-top:8px"><tr><th>Wert</th><th>Mein Wert</th><th>Nach meinen Zielwerten</th></tr>
+      ${E.werte.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></div>
+    <div class="scroll"><table class="t" style="margin-top:14px"><tr><th>Ursache laut Kompass</th><th>Meine Daten</th><th>Status</th></tr>
+      ${E.ursachen.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></div>
+  </section>
+  <h3 class="sec">${esc(K.titel)} <span class="chip src extern" style="margin-left:6px">${esc(K.quelle)}</span></h3>
+  <p class="meta" style="margin-bottom:12px">${esc(K.hinweis)}</p>
+  <div class="grid">${muster.map(m=>`<article class="card ${m.passt==="nah"?"nah":""}">
+    <div class="row"><span class="pill ${passt[m.passt][1]}">${passt[m.passt][0]}</span></div>
+    <h3>${esc(m.zustand)}</h3>${m.info?`<div class="meta">${esc(m.info)}</div>`:""}
+    <div class="vals">${dot("TSH",m.tsh)}${dot("fT4",m.ft4)}${dot("fT3",m.ft3)}</div>
+    <div class="lbl">Ursachen und fehlende Stoffe</div><ul class="plain">${m.ursachen.map(u=>`<li>${esc(u)}</li>`).join("")}</ul>
+    <div class="lbl">Symptome</div><p>${esc(m.symptome)}</p>
+    <div class="lbl">Bei mir</div><p>${esc(m.passtText)}</p></article>`).join("")}</div>`;
+}
+function viewPersonen(){
+  return `<h2>Personen</h2><p class="lead">Menschen und Quellen mit Kontakt, nach Rubrik.</p>
+  ${D.personen.map((g,i)=>`<h3 class="sec" style="margin-top:${i?30:0}px">${esc(g.gruppe)}</h3>
+    <div class="grid">${g.eintraege.map(p=>`<article class="card"><h3>${esc(p.name)}</h3>${p.info?`<div class="meta">${esc(p.info)}</div>`:""}
+      ${p.email?`<div class="lbl">E-Mail</div><p class="mail">${esc(p.email)}</p>`:""}
+      ${p.notiz?`<div class="lbl">Notiz</div><p>${esc(p.notiz)}</p>`:""}</article>`).join("")}</div>`).join("")}`;
+}
+const VIEWS = {wissen:viewWissen,personen:viewPersonen,daily:viewDaily,arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
 function render(){
   if(!VIEWS[tab]) tab="uebersicht";
   $("#sub").textContent = D.titel + " · Stand " + fmtDate(D.stand);
