@@ -438,7 +438,7 @@ function viewArzt(){
       ${m.hinweis?`<span class="meta" style="display:block">${esc(m.hinweis)}</span>`:""}</span></label>`;
   };
   return `<h2>Arzt</h2><p class="lead">Was ich beim nächsten Termin besprechen und messen lassen will.</p>
-  <div class="row"><span class="pill warn">zu buchen</span><span class="meta">${esc(A.termin)} · ${n} von ${all.length} erledigt</span></div>
+  <div class="row"><span class="pill warn">geplant</span><span class="meta">${esc(A.termin)} · ${n} von ${all.length} erledigt</span></div>
   <div class="grid2">
     <div style="display:grid;gap:14px;align-content:start">
       <section class="card"><h3>Blutwerte messen lassen</h3>${A.messen.map(row).join("")}</section>
