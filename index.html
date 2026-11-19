@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HEAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: schmale Kopfzeile mit Kennzahlen, darunter Tabs; jeder Tab ist ein eigenes Raster aus Karten. */
+:root{
+  --bg:#f2f6f4; --surface:#ffffff; --ink:#12302a; --muted:#5d7770; --line:#d9e4df;
+  --accent:#2c7a68; --accent-soft:#dcefe9; --warn:#b7791f; --warn-soft:#f8ecd2;
+  --bad:#b5483a; --bad-soft:#f6dfda; --good:#2c7a68; --good-soft:#dcefe9;
+  --display:"Fraunces",Georgia,serif; --body:"Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1a17; --surface:#16251f; --ink:#e3efea; --muted:#94b0a7; --line:#27403a;
+  --accent:#5cc2a8; --accent-soft:#1d3a32; --warn:#e2ab52; --warn-soft:#3a2f17;
+  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1a17; --surface:#16251f; --ink:#e3efea; --muted:#94b0a7; --line:#27403a;
+  --accent:#5cc2a8; --accent-soft:#1d3a32; --warn:#e2ab52; --warn-soft:#3a2f17;
+  --bad:#e5826f; --bad-soft:#3d2420; --good:#5cc2a8; --good-soft:#1d3a32; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+header{padding:36px 0 20px;display:flex;flex-wrap:wrap;gap:20px 40px;align-items:flex-end;justify-content:space-between}
+h1{font:600 clamp(2rem,5vw,2.8rem)/1 var(--display);margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:6px 0 0}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 16px;min-width:110px}
+.stat b{display:block;font:600 1.5rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:24px}
+nav button{font:500 .95rem var(--body);color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;padding:12px 16px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+nav button:hover{color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h2{font:600 1.35rem var(--display);margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 20px;max-width:65ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.card h3{font:600 1.05rem var(--body);margin:0 0 6px}
+.meta{font-size:.82rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.04em;padding:2px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);text-transform:uppercase}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.mute{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:12px 0 4px;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.high i{background:var(--bad)} .bar.mid i{background:var(--warn)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{font:500 .82rem var(--body);padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.example{border-style:dashed}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.85rem;margin-bottom:18px}
+/* Einnahmeplan */
+.day{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px;margin-bottom:28px}
+.slot h3{font:600 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.slot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.slot li{padding:8px 0;border-top:1px solid var(--line)} .slot li:first-child{border:0;padding-top:0}
+.slot b{font-weight:600} .empty{color:var(--muted);font-size:.9rem}
+/* Plan */
+.approved{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:20px}
+.progress{flex:1;min-width:200px}
+.phase{margin-bottom:14px}
+.phase header{padding:0 0 10px;align-items:baseline}
+.phase h3{margin:0}
+.step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);cursor:pointer}
+.step input{margin-top:4px;accent-color:var(--accent);width:17px;height:17px;flex:none}
+.step.done span{text-decoration:line-through;color:var(--muted)}
+/* Recherche */
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;align-items:start}
+.col>h3{font:600 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between}
+.col .card{margin-bottom:12px}
+.q{font:600 1.05rem/1.3 var(--display);margin:0 0 8px}
+.lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 2px}
+.card p{margin:0}
+/* Blutwerte */
+.val{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.val b{font:600 2rem/1 var(--display);font-variant-numeric:tabular-nums}
+.val small{color:var(--muted);font-size:.85rem}
+.range{position:relative;height:12px;border-radius:99px;background:var(--bad-soft);margin:18px 0 6px}
+.range .ref{position:absolute;top:0;bottom:0;background:var(--warn-soft);border-radius:99px}
+.range .opt{position:absolute;top:0;bottom:0;background:var(--good);opacity:.55;border-radius:99px}
+.range .mark{position:absolute;top:-4px;width:4px;height:20px;border-radius:2px;background:var(--ink);transform:translateX(-50%)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.75rem;color:var(--muted);margin-bottom:16px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.spark{width:100%;height:70px;display:block;margin-top:12px;overflow:visible}
+.hist{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px;font-variant-numeric:tabular-nums}
+.hist td{padding:4px 0;border-top:1px solid var(--line)} .hist td:last-child{text-align:right}
+.foot{margin-top:40px;color:var(--muted);font-size:.8rem}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>HEAL</h1>
+      <p class="sub">Meine Reise zu mehr Gesundheit · Stand <span id="updated"></span></p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+  <nav role="tablist" id="tabs"></nav>
+  <main id="view"></main>
+  <p class="foot">Daten liegen in <code>data.js</code>. Kein medizinischer Rat, nur persönliche Dokumentation.</p>
+</div>
+
+<script src="data.js"></script>
+<script>
+const D = window.HEAL_DATA;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  get(k, d){ try { return JSON.parse(localStorage.getItem("heal:"+k)) ?? d } catch { return d } },
+  set(k, v){ try { localStorage.setItem("heal:"+k, JSON.stringify(v)) } catch {} }
+};
+const fmtMonth = s => { if(!s) return ""; const [y,m]=s.split("-"); const n=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return m ? n[+m-1]+" "+y : y; };
+const fmtDate = s => { const d=new Date(s); return isNaN(d)?s:d.toLocaleDateString("de-DE",{day:"numeric",month:"long",year:"numeric"}); };
+const exNote = arr => arr.some(x=>x.beispiel) ? '<div class="note">Das sind Beispiel-Einträge. Ersetze sie in <code>data.js</code> durch deine echten Daten.</div>' : "";
+
+const done = new Set(store.get("done", []));
+D.plan.phasen.forEach(p => p.schritte.forEach(s => { if (s.erledigt) done.add(s.id); }));
+const allSteps = () => D.plan.phasen.flatMap(p => p.schritte);
+
+let tab = (location.hash||"#symptome").slice(1);
+let symFilter = "Alle";
+
+const TABS = [
+  ["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["werte","Blutwerte"],["recherche","Recherche"]
+];
+
+function renderStats(){
+  const steps = allSteps(), n = steps.filter(s=>done.has(s.id)).length;
+  const open = D.recherche.filter(r=>r.status!=="geklärt").length;
+  $("#stats").innerHTML = [
+    [D.symptome.length,"Symptome"],[D.supplemente.length,"Supplemente"],
+    [n+"/"+steps.length,"Plan-Schritte"],[open,"Offene Fragen"]
+  ].map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+}
+
+function renderTabs(){
+  $("#tabs").innerHTML = TABS.map(([id,l]) =>
+    `<button role="tab" aria-selected="${id===tab}" data-tab="${id}">${l}</button>`).join("");
+}
+
+function sevClass(n){ return n>=7?"high":n>=4?"mid":""; }
+const trendPill = t => t==="besser" ? '<span class="pill">↓ besser</span>' : t==="schlechter" ? '<span class="pill bad">↑ schlechter</span>' : '<span class="pill mute">→ gleich</span>';
+
+function viewSymptome(){
+  const areas = ["Alle", ...new Set(D.symptome.map(s=>s.bereich))];
+  const list = D.symptome.filter(s => symFilter==="Alle" || s.bereich===symFilter).sort((a,b)=>b.staerke-a.staerke);
+  return `<h2>Symptome</h2><p class="lead">Was gerade da ist, wie stark, und wohin es sich entwickelt. Sortiert nach Stärke.</p>
+  ${exNote(D.symptome)}
+  <div class="filters">${areas.map(a=>`<button class="chip" aria-pressed="${a===symFilter}" data-filter="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+  <div class="grid">${list.map(s=>`
+    <article class="card ${s.beispiel?"example":""}">
+      <div class="row"><span class="pill mute">${esc(s.bereich)}</span>${trendPill(s.trend)}</div>
+      <h3>${esc(s.name)}</h3>
+      <div class="bar ${sevClass(s.staerke)}" role="img" aria-label="Stärke ${s.staerke} von 10"><i style="width:${s.staerke*10}%"></i></div>
+      <div class="meta">Stärke ${s.staerke}/10${s.seit?" · seit "+fmtMonth(s.seit):""}</div>
+      ${s.ausloeser?`<div class="lbl">Auslöser</div><p>${esc(s.ausloeser)}</p>`:""}
+      ${s.notiz?`<div class="lbl">Notiz</div><p>${esc(s.notiz)}</p>`:""}
+    </article>`).join("")}</div>`;
+}
+
+function viewSupp(){
+  const slots = ["Morgens","Mittags","Abends","Nach Bedarf"];
+  return `<h2>Meine aktuellen Supplemente</h2><p class="lead">Der Tagesablauf auf einen Blick, darunter jedes Präparat mit Zweck und Notizen.</p>
+  ${exNote(D.supplemente)}
+  <div class="day">${slots.map(t=>{
+    const items = D.supplemente.filter(s=>s.zeit===t);
+    return `<section class="card slot"><h3>${t}</h3>${items.length?`<ul>${items.map(s=>`<li><b>${esc(s.name)}</b><br><span class="meta">${esc(s.dosis)}${s.mitEssen?" · mit Essen":""}</span></li>`).join("")}</ul>`:'<p class="empty">Nichts geplant</p>'}</section>`;
+  }).join("")}</div>
+  <div class="grid">${D.supplemente.map(s=>`
+    <article class="card ${s.beispiel?"example":""}">
+      <div class="row"><span class="pill">${esc(s.zeit)}</span>${s.mitEssen?'<span class="pill mute">mit Essen</span>':""}</div>
+      <h3>${esc(s.name)}</h3>
+      <div class="meta">${esc(s.dosis)}${s.seit?" · seit "+fmtMonth(s.seit):""}${s.marke?" · "+esc(s.marke):""}</div>
+      <div class="lbl">Wofür</div><p>${esc(s.zweck)}</p>
+      ${s.notiz?`<div class="lbl">Notiz</div><p>${esc(s.notiz)}</p>`:""}
+    </article>`).join("")}</div>`;
+}
+
+function viewPlan(){
+  const steps = allSteps(), n = steps.filter(s=>done.has(s.id)).length, pct = steps.length?Math.round(n/steps.length*100):0;
+  return `<h2>Mein Plan</h2><p class="lead">${esc(D.plan.ziel)}</p>
+  ${D.plan.beispiel?'<div class="note">Das ist ein Beispiel-Plan. Trage deinen freigegebenen Plan in <code>data.js</code> ein.</div>':""}
+  <div class="approved card">
+    <span class="pill">✓ ${esc(D.plan.status)}</span>
+    <span class="meta">am ${fmtDate(D.plan.freigegeben)}</span>
+    <div class="progress"><div class="bar"><i style="width:${pct}%"></i></div><div class="meta">${n} von ${steps.length} Schritten erledigt (${pct}%)</div></div>
+  </div>
+  ${D.plan.phasen.map(p=>`
+    <section class="card phase">
+      <header><h3>${esc(p.titel)}</h3><span class="meta">${esc(p.zeitraum)}</span></header>
+      ${p.schritte.map(s=>`<label class="step ${done.has(s.id)?"done":""}"><input type="checkbox" data-step="${esc(s.id)}" ${done.has(s.id)?"checked":""}><span>${esc(s.text)}</span></label>`).join("")}
+    </section>`).join("")}`;
+}
+
+function viewRecherche(){
+  const cols = [["offen","Noch offen","warn"],["läuft","In Recherche",""],["geklärt","Geklärt","mute"]];
+  const prio = {hoch:"bad",mittel:"warn",niedrig:"mute"}, order={hoch:0,mittel:1,niedrig:2};
+  return `<h2>Recherche</h2><p class="lead">Alles, was ich noch genauer prüfen will. Jede Frage mit Vermutung und nächstem Schritt.</p>
+  ${exNote(D.recherche)}
+  <div class="board">${cols.map(([k,l,c])=>{
+    const items = D.recherche.filter(r=>r.status===k).sort((a,b)=>order[a.prio]-order[b.prio]);
+    return `<section class="col"><h3><span>${l}</span><span>${items.length}</span></h3>${items.map(r=>`
+      <article class="card ${r.beispiel?"example":""}">
+        <div class="row"><span class="pill mute">${esc(r.thema)}</span><span class="pill ${prio[r.prio]}">Prio ${esc(r.prio)}</span></div>
+        <p class="q">${esc(r.frage)}</p>
+        ${r.vermutung?`<div class="lbl">Bisherige Vermutung</div><p>${esc(r.vermutung)}</p>`:""}
+        ${r.naechsterSchritt?`<div class="lbl">Nächster Schritt</div><p>${esc(r.naechsterSchritt)}</p>`:""}
+        ${(r.quellen||[]).length?`<div class="lbl">Quellen</div><p>${r.quellen.map(q=>/^https?:/.test(q.url||"")?`<a href="${esc(q.url)}" target="_blank" rel="noopener">${esc(q.titel||q.url)}</a>`:esc(q.titel||"")).join("<br>")}</p>`:""}
+      </article>`).join("")||'<p class="empty">Keine Einträge</p>'}</section>`;
+  }).join("")}</div>`;
+}
+
+function bwStatus(b){
+  const v=b.verlauf[b.verlauf.length-1].wert;
+  if(v>=b.optimal.min&&v<=b.optimal.max) return ["im Optimum",""];
+  if(v>=b.referenz.min&&v<=b.referenz.max) return ["im Laborbereich","warn"];
+  return ["außerhalb","bad"];
+}
+function spark(b){
+  const pts=b.verlauf, W=300, H=70, pad=8;
+  const lo=Math.min(b.optimal.min,...pts.map(p=>p.wert))*0.9, hi=Math.max(b.optimal.max,...pts.map(p=>p.wert))*1.05;
+  const y=v=>H-pad-(v-lo)/(hi-lo)*(H-2*pad);
+  const x=i=>pts.length===1?W/2:pad+i/(pts.length-1)*(W-2*pad);
+  const path=pts.map((p,i)=>(i?"L":"M")+x(i).toFixed(1)+" "+y(p.wert).toFixed(1)).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf ${esc(b.name)}">
+    <rect x="0" y="${y(b.optimal.max).toFixed(1)}" width="${W}" height="${(y(b.optimal.min)-y(b.optimal.max)).toFixed(1)}" fill="var(--good)" opacity=".18"/>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.wert).toFixed(1)}" r="${i===pts.length-1?5:3.2}" fill="${i===pts.length-1?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`).join("")}
+  </svg>`;
+}
+function viewWerte(){
+  return `<h2>Blutwerte</h2><p class="lead">Mein Verlauf im Vergleich zum Laborbereich und zum recherchierten Optimalbereich.</p>
+  ${exNote(D.blutwerte)}
+  <div class="legend"><span><i style="background:var(--bad-soft)"></i>außerhalb</span><span><i style="background:var(--warn-soft)"></i>Laborbereich</span><span><i style="background:var(--good);opacity:.55"></i>Optimalbereich</span><span><i style="background:var(--ink)"></i>aktueller Wert</span></div>
+  <div class="grid">${D.blutwerte.map(b=>{
+    const last=b.verlauf[b.verlauf.length-1], prev=b.verlauf[b.verlauf.length-2];
+    const lo=Math.min(b.referenz.min,last.wert)*0.8, hi=Math.max(b.referenz.max,last.wert)*1.1;
+    const pc=v=>Math.max(0,Math.min(100,(v-lo)/(hi-lo)*100));
+    const [st,cl]=bwStatus(b);
+    const diff=prev?last.wert-prev.wert:0, arrow=!prev?"":diff>0?"▲":diff<0?"▼":"■";
+    return `<article class="card ${b.beispiel?"example":""}">
+      <div class="row"><span class="pill ${cl}">${st}</span></div>
+      <h3>${esc(b.name)}</h3>
+      <div class="val"><b>${last.wert}</b><small>${esc(b.einheit)} ${arrow?`· ${arrow} ${Math.abs(+diff.toFixed(2))} seit ${fmtDate(prev.datum)}`:""}</small></div>
+      <div class="range">
+        <div class="ref" style="left:${pc(b.referenz.min)}%;width:${pc(b.referenz.max)-pc(b.referenz.min)}%"></div>
+        <div class="opt" style="left:${pc(b.optimal.min)}%;width:${pc(b.optimal.max)-pc(b.optimal.min)}%"></div>
+        <div class="mark" style="left:${pc(last.wert)}%"></div>
+      </div>
+      <div class="meta">Labor ${b.referenz.min}–${b.referenz.max} · Optimal ${b.optimal.min}–${b.optimal.max} ${esc(b.einheit)}</div>
+      ${b.quelle?`<div class="meta">Quelle: ${/^https?:/.test(b.quelle)?`<a href="${esc(b.quelle)}" target="_blank" rel="noopener">${esc(b.quelle)}</a>`:esc(b.quelle)}</div>`:""}
+      ${spark(b)}
+      <table class="hist">${[...b.verlauf].reverse().map(p=>`<tr><td>${fmtDate(p.datum)}</td><td>${p.wert} ${esc(b.einheit)}</td></tr>`).join("")}</table>
+    </article>`;}).join("")}</div>`;
+}
+
+const VIEWS = {symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
+function render(){
+  if(!VIEWS[tab]) tab="symptome";
+  $("#updated").textContent = fmtDate(D.updated);
+  renderTabs(); renderStats();
+  $("#view").innerHTML = VIEWS[tab]();
+}
+document.addEventListener("click", e=>{
+  const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); return; }
+  const f=e.target.closest("[data-filter]"); if(f){ symFilter=f.dataset.filter; render(); }
+});
+document.addEventListener("change", e=>{
+  const id=e.target.dataset?.step; if(!id) return;
+  e.target.checked ? done.add(id) : done.delete(id);
+  store.set("done",[...done]); render();
+});
+window.addEventListener("hashchange",()=>{ tab=location.hash.slice(1); render(); });
+render();
+</script>
+</body>
+</html>
