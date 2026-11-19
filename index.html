@@ -446,7 +446,7 @@ function viewArzt(){
     </div>
     <div style="display:grid;gap:14px;align-content:start">
       <section class="card"><h3>Termine vereinbaren</h3>${A.termine.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span><b>${esc(t.text)}</b>${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>
-      <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}</span></label>`).join("")}</section>
+      <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}${z.hinweis?`<span class="dtl">${esc(z.hinweis)}</span>`:""}</span></label>`).join("")}</section>
       <section class="card"><h3>Vorbereitung</h3><ul class="plain">${A.vorbereitung.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></section>
     </div>
   </div>`;
