@@ -280,7 +280,7 @@ function viewUebersicht(){
   const pct = Math.max(0, Math.min(100, Math.round((today()-start)/(end-start)*100)));
   const ph = currentPhase(), last = D.tsh.verlauf[D.tsh.verlauf.length-1];
   const open = D.plan.todos.filter(t=>t.gruppe==="Nächste Schritte" && !done.has(t.id));
-  return `<h2>Übersicht</h2><p class="lead">${esc(D.plan.ziel)} ${esc(D.plan.regel)}</p>
+  return `<h2>Übersicht</h2><p class="lead">${esc(D.plan.ziel)}</p>
   <div class="grid2">
     <section class="card">
       <div class="lbl" style="margin-top:0">Bis zur Entscheidung am ${fmtDate(D.entscheidung)}</div>
@@ -337,7 +337,7 @@ function viewSupp(){
 function viewPlan(){
   const k = D.plan.kriterien, groups = ["Nächste Schritte","Offene Fragen"];
   return `<h2>Mein Plan</h2><p class="lead">${esc(D.plan.ziel)}</p>
-  <div class="row"><span class="pill">✓ ${esc(D.plan.status)}</span><span class="meta">Stand ${fmtDate(D.plan.stand)} · ${esc(D.plan.regel)}</span></div>
+  <div class="row"><span class="pill">✓ ${esc(D.plan.status)}</span><span class="meta">Stand ${fmtDate(D.plan.stand)}</span></div>
   <h3 class="sec">Termine und Zeitplan</h3>
   <section class="card">${termineList(D.plan.termine)}</section>
   <h3 class="sec">To-do</h3>
