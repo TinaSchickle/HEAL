@@ -184,7 +184,7 @@ const ratePill = (normen, v) => { const [t,c] = rate(normen, v); return `<span c
 
 const done = new Set(store.get("done", []));
 let tab = (location.hash||"#uebersicht").slice(1);
-const TABS = [["uebersicht","Übersicht"],["daily","Daily Plan"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"],["wissen","Wissensbasis"],["personen","Personen"]];
+const TABS = [["uebersicht","Übersicht"],["daily","Daily Plan"],["symptome","Symptome"],["supplemente","Supplemente"],["plan","Mein Plan"],["todo","To-do"],["arzt","Arzt"],["werte","Werte"],["recherche","Recherche"],["wissen","Wissensbasis"],["personen","Personen"]];
 
 function currentPhase(){
   const t = today();
@@ -334,15 +334,18 @@ function viewSupp(){
   <section class="card"><ul class="plain">${D.kost.map(k=>`<li>${esc(k)}</li>`).join("")}</ul></section>`;
 }
 
+function viewTodo(){
+  const groups = ["Nächste Schritte","Offene Fragen"];
+  return `<h2>To-do</h2><p class="lead">Alles, was noch zu erledigen oder zu klären ist.</p>
+  <div class="grid2">${groups.map(g=>{ const items=D.plan.todos.filter(t=>t.gruppe===g), n=items.filter(t=>done.has(t.id)).length;
+    return `<section class="card"><h3>${g} <span class="meta">${n}/${items.length}</span></h3>${items.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span>${esc(t.text)}${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>`; }).join("")}</div>`;
+}
 function viewPlan(){
   const k = D.plan.kriterien, groups = ["Nächste Schritte","Offene Fragen"];
   return `<h2>Mein Plan</h2><p class="lead">${esc(D.plan.ziel)}</p>
   <div class="row"><span class="pill">✓ ${esc(D.plan.status)}</span><span class="meta">Stand ${fmtDate(D.plan.stand)}</span></div>
   <h3 class="sec">Termine und Zeitplan</h3>
   <section class="card">${termineList(D.plan.termine)}</section>
-  <h3 class="sec">To-do</h3>
-  <div class="grid2">${groups.map(g=>{ const items=D.plan.todos.filter(t=>t.gruppe===g), n=items.filter(t=>done.has(t.id)).length;
-    return `<section class="card"><h3>${g} <span class="meta">${n}/${items.length}</span></h3>${items.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span>${esc(t.text)}${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>`; }).join("")}</div>
   <h3 class="sec">Entscheidung am ${fmtDate(D.entscheidung)}</h3>
   <section class="card scroll"><table class="t"><tr><th></th><th>Beschwerden ≥ 50 % besser</th><th>Beschwerden kaum besser</th></tr>
     ${k.matrix.map(r=>`<tr><td><b>${esc(r.tsh)}</b></td><td>${esc(r.besser)}</td><td>${esc(r.kaum)}</td></tr>`).join("")}</table></section>
@@ -495,7 +498,7 @@ function viewPersonen(){
       ${p.email?`<div class="lbl">E-Mail</div><p class="mail">${esc(p.email)}</p>`:""}
       ${p.notiz?`<div class="lbl">Notiz</div><p>${esc(p.notiz)}</p>`:""}</article>`).join("")}</div>`).join("")}`;
 }
-const VIEWS = {wissen:viewWissen,personen:viewPersonen,daily:viewDaily,arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,werte:viewWerte,recherche:viewRecherche};
+const VIEWS = {wissen:viewWissen,personen:viewPersonen,daily:viewDaily,arzt:viewArzt,uebersicht:viewUebersicht,symptome:viewSymptome,supplemente:viewSupp,plan:viewPlan,todo:viewTodo,werte:viewWerte,recherche:viewRecherche};
 function render(){
   if(!VIEWS[tab]) tab="uebersicht";
   $("#sub").textContent = D.titel + " · Stand " + fmtDate(D.stand);
