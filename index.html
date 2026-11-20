@@ -448,7 +448,7 @@ function viewArzt(){
     <div style="display:grid;gap:14px;align-content:start">
       <section class="card"><h3>Fragenkatalog</h3><p class="meta" style="margin-bottom:6px">Antworten werden nur in diesem Browser gespeichert.</p>${A.fragen.map(g=>`<div class="lbl" style="margin-top:12px">${esc(g.gruppe)}</div>${g.items.map(q=>`<label class="step ${done.has(q.id)?"done":""}"><input type="checkbox" data-step="${esc(q.id)}" ${done.has(q.id)?"checked":""}><span><b>${esc(q.text)}</b>${q.hinweis?`<span class="dtl">${esc(q.hinweis)}</span>`:""}</span></label><textarea class="antwort" data-antwort="${esc(q.id)}" rows="2" placeholder="Antwort">${esc((store.get("antwort",{})||{})[q.id]||"")}</textarea>`).join("")}`).join("")}</section>
       <section class="card"><h3>Termine vereinbaren</h3>${A.termine.map(t=>`<label class="step ${done.has(t.id)?"done":""}"><input type="checkbox" data-step="${esc(t.id)}" ${done.has(t.id)?"checked":""}><span><b>${esc(t.text)}</b>${t.hinweis?`<span class="dtl">${esc(t.hinweis)}</span>`:""}</span></label>`).join("")}</section>
-      <section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}${z.hinweis?`<span class="dtl">${esc(z.hinweis)}</span>`:""}</span></label>`).join("")}</section>
+      ${A.zusatz.length?`<section class="card"><h3>Zusätzlich laut Plan</h3>${A.zusatz.map(z=>`<label class="step ${done.has(z.id)?"done":""}"><input type="checkbox" data-step="${esc(z.id)}" ${done.has(z.id)?"checked":""}><span>${esc(z.text)}${z.hinweis?`<span class="dtl">${esc(z.hinweis)}</span>`:""}</span></label>`).join("")}</section>`:""}
     </div>
   </div>`;
 }
