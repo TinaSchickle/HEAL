@@ -501,16 +501,12 @@ function dailyHistory(){
   }
   return rows.length ? `<section class="card" style="margin-top:14px"><h3>Verlauf, letzte 14 Tage</h3>${rows.join("")}</section>` : "";
 }
-/* Cloud-Abgleich (Supabase): Zugangsdaten stehen verschlüsselt in den Daten (D.sync), Anmeldung per E-Mail und Passwort */
-const SB = () => (D && D.sync && D.sync.url && D.sync.anonKey) ? D.sync : null;
-let sbSession = store.get("sb", null), sbInfo = "";
+/* Cloud-Abgleich (Supabase): URL, Schlüssel und Geheimcode stehen verschlüsselt in den Daten (D.sync). Keine Anmeldung nötig. */
+const SB = () => (D && D.sync && D.sync.url && D.sync.anonKey && D.sync.secret) ? D.sync : null;
+let sbInfo = "";
 function syncCard(){
   if(!SB()) return "";
-  const inp = "font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%;max-width:280px";
-  const body = sbSession
-    ? `<p>Angemeldet als ${esc(sbSession.email||"")}. ${esc(sbInfo||"")}</p><p style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-act="sbsync">Jetzt abgleichen</button><button type="button" data-act="sblogout">Abmelden</button></p>`
-    : `<p class="meta">Mit dem Konto aus Supabase anmelden, damit Haken und Verlauf auf allen Geräten gleich sind.</p><div style="display:grid;gap:8px;margin-top:8px"><input id="sbEmail" type="email" autocomplete="username" placeholder="E-Mail" style="${inp}"><input id="sbPw" type="password" autocomplete="current-password" placeholder="Passwort" style="${inp}"><div><button type="button" data-act="sblogin">Anmelden</button></div></div><p class="meta" id="sbMsg" role="alert" style="margin-top:6px">${esc(sbInfo||"")}</p>`;
-  return `<section class="card" style="margin-top:14px"><h3>Abgleich zwischen Geräten</h3>${body}</section>`;
+  return `<section class="card" style="margin-top:14px"><h3>Abgleich zwischen Geräten</h3><p class="meta">Haken und Verlauf werden automatisch mit Supabase abgeglichen. Bei Konflikten gewinnt die neuere Änderung.</p><p style="margin-top:8px">${esc(sbInfo||"Noch nicht abgeglichen.")}</p><p style="margin-top:8px"><button type="button" data-act="sbsync">Jetzt abgleichen</button></p></section>`;
 }
 function reminderCard(){
   let st;
@@ -573,7 +569,7 @@ function render(){
 }
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
-  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sblogin") sbLogin(); if(a.dataset.act==="sbsync") syncAll(); if(a.dataset.act==="sblogout") sbLogout(); }
+  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sbsync") syncAll(); }
 });
 document.addEventListener("change", e=>{
   const aid=e.target.dataset?.antwort;
@@ -612,40 +608,21 @@ async function unlock(pw){
 }
 async function relock(){ try{ await KV.del("key"); }catch{} location.reload(); }
 
-/* Supabase per REST, ohne Zusatzbibliothek. Gespeichert wird pro Tag nur: Datum, abgehakte IDs, Plan-IDs, Zeitstempel. Neuere Änderung gewinnt. */
-async function sbAuth(grant, body){
-  const r = await fetch(SB().url+"/auth/v1/token?grant_type="+grant, {method:"POST", headers:{apikey:SB().anonKey,"Content-Type":"application/json"}, body:JSON.stringify(body)});
-  const j = await r.json().catch(()=>({}));
-  if(!r.ok){ const e = new Error(j.error_description || j.msg || "Anmeldung fehlgeschlagen"); e.status = r.status; throw e; }
-  sbSession = {access_token:j.access_token, refresh_token:j.refresh_token, expires_at:Date.now()+(j.expires_in-60)*1000, email:(j.user&&j.user.email)||(sbSession&&sbSession.email)||""};
-  store.set("sb", sbSession);
-}
-async function sbToken(){
-  if(!sbSession) return null;
-  if(Date.now()>sbSession.expires_at){
-    try{ await sbAuth("refresh_token",{refresh_token:sbSession.refresh_token}); }
-    catch(e){ if(e.status===400||e.status===401){ sbSession=null; store.set("sb",null); } throw e; }
-  }
-  return sbSession.access_token;
-}
-async function sbRest(path, opt={}){
-  const t = await sbToken(); if(!t) throw new Error("nicht angemeldet");
-  const r = await fetch(SB().url+"/rest/v1/"+path, {...opt, headers:{apikey:SB().anonKey, Authorization:"Bearer "+t, "Content-Type":"application/json", ...(opt.headers||{})}});
+/* Supabase per REST-Funktionen (RPC), ohne Zusatzbibliothek. Pro Tag nur: Datum, abgehakte IDs, Plan-IDs, Zeitstempel. Neuere Änderung gewinnt. */
+async function sbRpc(fn, args){
+  const r = await fetch(SB().url+"/rest/v1/rpc/"+fn, {method:"POST", headers:{apikey:SB().anonKey,"Content-Type":"application/json"}, body:JSON.stringify({p_secret:SB().secret, ...args})});
   if(!r.ok) throw new Error("Abgleich "+r.status);
-  return r.status===204 ? null : r.json().catch(()=>null);
+  return r.json().catch(()=>null);
 }
 const dayRow = k => ({day:k, checked:store.get("daily:"+k,[]), plan:store.get("dailyall:"+k,[]), updated_at:new Date(store.get("dailyts:"+k,Date.now())).toISOString()});
-async function sbPush(days){
-  if(!days.length) return;
-  await sbRest("heal_daily?on_conflict=user_id,day", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(days.map(dayRow))});
-}
+async function sbPush(days){ if(SB() && days.length) await sbRpc("heal_push", {p_rows:days.map(dayRow)}); }
 let sbBusy = false;
 async function syncAll(){
-  if(!SB() || !sbSession || sbBusy) return;
+  if(!SB() || sbBusy) return;
   sbBusy = true;
   try{
     const from = logicalDate(new Date(Date.now()-30*DAY));
-    const rows = await sbRest("heal_daily?select=day,checked,plan,updated_at&day=gte."+from+"&order=day.desc") || [];
+    const rows = await sbRpc("heal_pull", {p_from:from}) || [];
     const remote = {}; let changedToday = false; const k0 = logicalDate();
     for(const r of rows){
       remote[r.day] = Date.parse(r.updated_at);
@@ -656,8 +633,8 @@ async function syncAll(){
     }
     const push = [];
     for(let n=0;n<=30;n++){
-      const k = logicalDate(new Date(Date.now()-n*DAY)), has = store.get("daily:"+k,null)!==null;
-      if(!has) continue;
+      const k = logicalDate(new Date(Date.now()-n*DAY));
+      if(store.get("daily:"+k,null)===null) continue;
       const lts = store.get("dailyts:"+k, 0);
       if(remote[k]===undefined || lts>remote[k]){ if(!lts) store.set("dailyts:"+k, Date.now()); push.push(k); }
     }
@@ -668,13 +645,6 @@ async function syncAll(){
   }catch(e){ sbInfo = "Abgleich nicht möglich ("+(e.message||"Fehler")+"). Haken bleiben auf diesem Gerät gespeichert."; if(tab==="daily") render(); }
   finally{ sbBusy = false; }
 }
-async function sbLogin(){
-  const em = ($("#sbEmail")||{}).value||"", pw = ($("#sbPw")||{}).value||"";
-  try{ await sbAuth("password",{email:em.trim(), password:pw}); sbInfo=""; await syncAll(); }
-  catch(e){ sbInfo = e.message||"Anmeldung fehlgeschlagen"; }
-  render();
-}
-function sbLogout(){ sbSession=null; store.set("sb",null); sbInfo=""; render(); }
 
 /* Aufräumen und Erinnerungen */
 let lastDay = null, started = false, lastSync = 0;
