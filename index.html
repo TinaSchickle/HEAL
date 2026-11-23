@@ -501,6 +501,17 @@ function dailyHistory(){
   }
   return rows.length ? `<section class="card" style="margin-top:14px"><h3>Verlauf, letzte 14 Tage</h3>${rows.join("")}</section>` : "";
 }
+/* Cloud-Abgleich (Supabase): Zugangsdaten stehen verschlüsselt in den Daten (D.sync), Anmeldung per E-Mail und Passwort */
+const SB = () => (D && D.sync && D.sync.url && D.sync.anonKey) ? D.sync : null;
+let sbSession = store.get("sb", null), sbInfo = "";
+function syncCard(){
+  if(!SB()) return "";
+  const inp = "font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%;max-width:280px";
+  const body = sbSession
+    ? `<p>Angemeldet als ${esc(sbSession.email||"")}. ${esc(sbInfo||"")}</p><p style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-act="sbsync">Jetzt abgleichen</button><button type="button" data-act="sblogout">Abmelden</button></p>`
+    : `<p class="meta">Mit dem Konto aus Supabase anmelden, damit Haken und Verlauf auf allen Geräten gleich sind.</p><div style="display:grid;gap:8px;margin-top:8px"><input id="sbEmail" type="email" autocomplete="username" placeholder="E-Mail" style="${inp}"><input id="sbPw" type="password" autocomplete="current-password" placeholder="Passwort" style="${inp}"><div><button type="button" data-act="sblogin">Anmelden</button></div></div><p class="meta" id="sbMsg" role="alert" style="margin-top:6px">${esc(sbInfo||"")}</p>`;
+  return `<section class="card" style="margin-top:14px"><h3>Abgleich zwischen Geräten</h3>${body}</section>`;
+}
 function reminderCard(){
   let st;
   if(remPerm==="granted") st = NATIVE_APP ? "Aktiv. Die Uhrzeit kann um einige Minuten abweichen." : "Aktiv, aber nur solange HEAL geöffnet ist. Erinnerungen bei geschlossener App gehen nur in der Android-App.";
@@ -516,7 +527,7 @@ function viewDaily(){
   return `<h2>Daily Plan</h2><p class="lead">Was ich jeden Tag mache. Die Haken gelten nur für heute und beginnen um 2 Uhr nachts neu. Was du abgehakt hast, wird gespeichert (siehe Verlauf).</p>
   ${od.length?`<section class="card" style="margin-bottom:14px;border-color:var(--warn)"><h3>Noch offen</h3>${od.map(([z,o])=>`<p><b>${esc(z)}:</b> ${esc(o.map(i=>i.text).join(", "))}</p>`).join("")}</section>`:""}
   <div class="day-head"><span class="pill">${esc(datum)}</span><div class="bar" role="img" aria-label="${n} von ${all.length} erledigt"><i style="width:${pct}%"></i></div><span class="meta">${n} von ${all.length} erledigt</span></div>
-  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>${dailyHistory()}${reminderCard()}`;
+  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>${dailyHistory()}${reminderCard()}${syncCard()}`;
 }
 function viewWissen(){
   const K = D.wissen.kompass, E = D.wissen.einordnung;
@@ -562,13 +573,13 @@ function render(){
 }
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
-  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); }
+  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sblogin") sbLogin(); if(a.dataset.act==="sbsync") syncAll(); if(a.dataset.act==="sblogout") sbLogout(); }
 });
 document.addEventListener("change", e=>{
   const aid=e.target.dataset?.antwort;
   if(aid){ const a=store.get("antwort",{})||{}; a[aid]=e.target.value; store.set("antwort",a); return; }
   const day=e.target.dataset?.day;
-  if(day){ const s=new Set(store.get(dayKey(),[])); e.target.checked ? s.add(day) : s.delete(day); store.set(dayKey(),[...s]); syncReminders(); render(); return; }
+  if(day){ const s=new Set(store.get(dayKey(),[])); e.target.checked ? s.add(day) : s.delete(day); store.set(dayKey(),[...s]); store.set("dailyts:"+logicalDate(),Date.now()); syncReminders(); sbPush([logicalDate()]).catch(()=>{ sbInfo="Abgleich nicht möglich, wird später nachgeholt."; }); render(); return; }
   const id=e.target.dataset?.step; if(!id) return;
   e.target.checked ? done.add(id) : done.delete(id);
   store.set("done",[...done]); render();
@@ -601,13 +612,77 @@ async function unlock(pw){
 }
 async function relock(){ try{ await KV.del("key"); }catch{} location.reload(); }
 
+/* Supabase per REST, ohne Zusatzbibliothek. Gespeichert wird pro Tag nur: Datum, abgehakte IDs, Plan-IDs, Zeitstempel. Neuere Änderung gewinnt. */
+async function sbAuth(grant, body){
+  const r = await fetch(SB().url+"/auth/v1/token?grant_type="+grant, {method:"POST", headers:{apikey:SB().anonKey,"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok){ const e = new Error(j.error_description || j.msg || "Anmeldung fehlgeschlagen"); e.status = r.status; throw e; }
+  sbSession = {access_token:j.access_token, refresh_token:j.refresh_token, expires_at:Date.now()+(j.expires_in-60)*1000, email:(j.user&&j.user.email)||(sbSession&&sbSession.email)||""};
+  store.set("sb", sbSession);
+}
+async function sbToken(){
+  if(!sbSession) return null;
+  if(Date.now()>sbSession.expires_at){
+    try{ await sbAuth("refresh_token",{refresh_token:sbSession.refresh_token}); }
+    catch(e){ if(e.status===400||e.status===401){ sbSession=null; store.set("sb",null); } throw e; }
+  }
+  return sbSession.access_token;
+}
+async function sbRest(path, opt={}){
+  const t = await sbToken(); if(!t) throw new Error("nicht angemeldet");
+  const r = await fetch(SB().url+"/rest/v1/"+path, {...opt, headers:{apikey:SB().anonKey, Authorization:"Bearer "+t, "Content-Type":"application/json", ...(opt.headers||{})}});
+  if(!r.ok) throw new Error("Abgleich "+r.status);
+  return r.status===204 ? null : r.json().catch(()=>null);
+}
+const dayRow = k => ({day:k, checked:store.get("daily:"+k,[]), plan:store.get("dailyall:"+k,[]), updated_at:new Date(store.get("dailyts:"+k,Date.now())).toISOString()});
+async function sbPush(days){
+  if(!days.length) return;
+  await sbRest("heal_daily?on_conflict=user_id,day", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(days.map(dayRow))});
+}
+let sbBusy = false;
+async function syncAll(){
+  if(!SB() || !sbSession || sbBusy) return;
+  sbBusy = true;
+  try{
+    const from = logicalDate(new Date(Date.now()-30*DAY));
+    const rows = await sbRest("heal_daily?select=day,checked,plan,updated_at&day=gte."+from+"&order=day.desc") || [];
+    const remote = {}; let changedToday = false; const k0 = logicalDate();
+    for(const r of rows){
+      remote[r.day] = Date.parse(r.updated_at);
+      if(remote[r.day] > store.get("dailyts:"+r.day, 0)){
+        store.set("daily:"+r.day, r.checked||[]); if(r.plan && r.plan.length) store.set("dailyall:"+r.day, r.plan); store.set("dailyts:"+r.day, remote[r.day]);
+        if(r.day===k0) changedToday = true;
+      }
+    }
+    const push = [];
+    for(let n=0;n<=30;n++){
+      const k = logicalDate(new Date(Date.now()-n*DAY)), has = store.get("daily:"+k,null)!==null;
+      if(!has) continue;
+      const lts = store.get("dailyts:"+k, 0);
+      if(remote[k]===undefined || lts>remote[k]){ if(!lts) store.set("dailyts:"+k, Date.now()); push.push(k); }
+    }
+    await sbPush(push);
+    sbInfo = "Letzter Abgleich: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    if(changedToday) syncReminders();
+    if(tab==="daily") render();
+  }catch(e){ sbInfo = "Abgleich nicht möglich ("+(e.message||"Fehler")+"). Haken bleiben auf diesem Gerät gespeichert."; if(tab==="daily") render(); }
+  finally{ sbBusy = false; }
+}
+async function sbLogin(){
+  const em = ($("#sbEmail")||{}).value||"", pw = ($("#sbPw")||{}).value||"";
+  try{ await sbAuth("password",{email:em.trim(), password:pw}); sbInfo=""; await syncAll(); }
+  catch(e){ sbInfo = e.message||"Anmeldung fehlgeschlagen"; }
+  render();
+}
+function sbLogout(){ sbSession=null; store.set("sb",null); sbInfo=""; render(); }
+
 /* Aufräumen und Erinnerungen */
-let lastDay = null, started = false;
+let lastDay = null, started = false, lastSync = 0;
 function dailyHousekeeping(){
   const k = logicalDate(), ids = D.daily.flatMap(g=>g.items.map(i=>i.id));
   if(store.get("dailyall:"+k, null)===null) store.set("dailyall:"+k, ids);
   const cut = logicalDate(new Date(Date.now()-90*DAY));
-  try{ Object.keys(localStorage).forEach(key=>{ const m=key.match(/^heal:(daily|dailyall):(\d{4}-\d{2}-\d{2})$/); if(m && m[2]<cut) localStorage.removeItem(key); }); }catch{}
+  try{ Object.keys(localStorage).forEach(key=>{ const m=key.match(/^heal:(daily|dailyall|dailyts):(\d{4}-\d{2}-\d{2})$/); if(m && m[2]<cut) localStorage.removeItem(key); }); }catch{}
 }
 async function refreshPerm(){
   try{
@@ -649,6 +724,7 @@ async function tick(){
   if(!D) return;
   const k = logicalDate();
   if(k!==lastDay){ lastDay=k; dailyHousekeeping(); syncReminders(); if(tab==="daily") render(); }
+  if(Date.now()-lastSync>3e5){ lastSync=Date.now(); syncAll(); }
   if(LN() || !("Notification" in window) || Notification.permission!=="granted") return;
   const fired = store.get("fired:"+k, []), set = doneSet(), now = new Date();
   for(const [hh,z] of SLOTS){
@@ -666,11 +742,11 @@ function startApp(){
   dailyHousekeeping(); lastDay = logicalDate();
   refreshPerm().then(async ()=>{
     const ln = LN(); if(ln && remPerm==="granted"){ try{ await ln.createChannel({id:"heal-reminder", name:"Erinnerungen Daily Plan", importance:4}); }catch{} }
-    await syncReminders(); tick();
+    await syncReminders(); tick(); syncAll();
     if(tab==="daily") render();
   });
   setInterval(tick, 30000);
-  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ refreshPerm().then(()=>{ tick(); if(tab==="daily") render(); }); } });
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ refreshPerm().then(()=>{ tick(); syncAll(); if(tab==="daily") render(); }); } });
 }
 $("#lockForm").addEventListener("submit", async ev => {
   ev.preventDefault(); const msg = $("#lockMsg"); msg.textContent = "Prüfe …";
