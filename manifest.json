@@ -1,0 +1,16 @@
+{
+  "name": "HEAL – Gesundheits-Dashboard",
+  "short_name": "HEAL",
+  "description": "Persönliches Gesundheits-Dashboard mit Daily Plan und Erinnerungen.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f6f4",
+  "theme_color": "#2c7a68",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

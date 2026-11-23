@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HEAL</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2c7a68">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -138,7 +143,7 @@ table.t td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-alig
 </style>
 </head>
 <body>
-<div class="lock" id="lock"><form id="lockForm"><h1>HEAL</h1><label for="pw" class="meta">Passwort</label><input id="pw" type="password" autocomplete="current-password" autofocus required><button type="submit">Öffnen</button><p class="meta" id="lockMsg" role="alert"></p></form></div>
+<div class="lock" id="lock"><form id="lockForm"><h1>HEAL</h1><label for="pw" class="meta">Passwort (nur einmal pro Gerät, danach öffnet HEAL ohne Abfrage)</label><input id="pw" type="password" autocomplete="current-password" autofocus required><button type="submit">Öffnen</button><p class="meta" id="lockMsg" role="alert"></p></form></div>
 <div class="wrap" id="app" hidden>
   <header>
     <div>
@@ -150,6 +155,7 @@ table.t td{padding:9px 10px 9px 0;border-top:1px solid var(--line);vertical-alig
   <nav role="tablist" id="tabs"></nav>
   <main id="view"></main>
   <p class="foot">Keine Diagnose, ersetzt keine ärztliche Beratung. Viele Aussagen beruhen auf Abstracts, nicht auf Volltexten. Studien beschreiben Gruppen, nicht die Person.</p>
+  <p class="foot" style="margin-top:8px"><button type="button" data-act="relock" style="font:inherit;color:var(--muted);background:none;border:0;padding:0;text-decoration:underline;cursor:pointer">Dieses Gerät sperren (Passwort wieder verlangen)</button></p>
 </div>
 
 <script>
@@ -466,14 +472,51 @@ function viewArzt(){
     </div>
   </div>`;
 }
-const dayKey = () => "daily:" + new Date().toLocaleDateString("sv-SE");
+/* Tageswechsel um 2 Uhr nachts: bis 01:59 zählt noch der Vortag */
+const DAY_START_H = 2;
+const logicalDate = (d=new Date()) => new Date(d.getTime() - DAY_START_H*36e5).toLocaleDateString("sv-SE");
+const dayKey = () => "daily:" + logicalDate();
+const SLOTS = [[10,"Morgens"],[14,"Mittagessen"],[17,"Nachmittags"],[21,"Abends"]];
+const NATIVE_APP = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const LN = () => NATIVE_APP && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
+const doneSet = () => new Set(store.get(dayKey(), []));
+const openItems = (zeit, set=doneSet()) => ((D.daily.find(g=>g.zeit===zeit)||{}).items||[]).filter(i=>!set.has(i.id));
+const slotTime = (ds, hh) => { const [y,m,dd]=ds.split("-").map(Number); return new Date(y,m-1,dd,hh,0,0); };
+const remindBody = items => items.slice(0,3).map(i=>i.text).join(", ") + (items.length>3 ? " und "+(items.length-3)+" weitere" : "");
+let remPerm = "unknown";
+function overdue(){
+  const now=new Date(), k=logicalDate(), set=doneSet();
+  return SLOTS.filter(([hh])=>now>=slotTime(k,hh)).map(([hh,z])=>[z,openItems(z,set)]).filter(([z,o])=>o.length);
+}
+function dailyHistory(){
+  const ids = D.daily.flatMap(g=>g.items.map(i=>i.id)), name = {};
+  D.daily.forEach(g=>g.items.forEach(i=>name[i.id]=i.text));
+  const rows = [];
+  for(let n=1;n<=14;n++){
+    const k = logicalDate(new Date(Date.now()-n*DAY)), got = store.get("daily:"+k, null), snap = store.get("dailyall:"+k, null);
+    if(got===null && snap===null) continue;
+    const all = snap || ids, hit = new Set(got||[]), miss = all.filter(i=>!hit.has(i)), c = all.length-miss.length;
+    const lbl = dt(k).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
+    rows.push(`<details style="padding:6px 0;border-top:1px solid var(--line)"><summary>${esc(lbl)} · ${c} von ${all.length} erledigt</summary><p class="dtl" style="margin-top:6px">${miss.length?"Nicht abgehakt: "+esc(miss.map(i=>name[i]||i).join(", ")):"Alles abgehakt."}</p></details>`);
+  }
+  return rows.length ? `<section class="card" style="margin-top:14px"><h3>Verlauf, letzte 14 Tage</h3>${rows.join("")}</section>` : "";
+}
+function reminderCard(){
+  let st;
+  if(remPerm==="granted") st = NATIVE_APP ? "Aktiv. Die Uhrzeit kann um einige Minuten abweichen." : "Aktiv, aber nur solange HEAL geöffnet ist. Erinnerungen bei geschlossener App gehen nur in der Android-App.";
+  else if(remPerm==="denied") st = "Blockiert. Bitte in den Android-Einstellungen für HEAL Benachrichtigungen erlauben.";
+  else if(remPerm==="none") st = "Dieser Browser unterstützt keine Benachrichtigungen.";
+  else st = `<button type="button" data-act="remind">Erinnerungen aktivieren</button>`;
+  return `<section class="card" style="margin-top:14px"><h3>Erinnerungen</h3><p class="meta">Um 10, 14, 17 und 21 Uhr, nur wenn Morgens, Mittagessen, Nachmittags bzw. Abends noch nicht abgehakt ist. Vor dem Schlafengehen hat keine Erinnerung.</p><p style="margin-top:8px">${st}</p></section>`;
+}
 function viewDaily(){
   const set = new Set(store.get(dayKey(), [])), all = D.daily.flatMap(g=>g.items), n = all.filter(i=>set.has(i.id)).length;
   const pct = all.length ? Math.round(n/all.length*100) : 0;
-  const datum = new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
-  return `<h2>Daily Plan</h2><p class="lead">Was ich jeden Tag mache. Die Haken gelten nur für heute und beginnen morgen neu.</p>
+  const datum = dt(logicalDate()).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"}), od = overdue();
+  return `<h2>Daily Plan</h2><p class="lead">Was ich jeden Tag mache. Die Haken gelten nur für heute und beginnen um 2 Uhr nachts neu. Was du abgehakt hast, wird gespeichert (siehe Verlauf).</p>
+  ${od.length?`<section class="card" style="margin-bottom:14px;border-color:var(--warn)"><h3>Noch offen</h3>${od.map(([z,o])=>`<p><b>${esc(z)}:</b> ${esc(o.map(i=>i.text).join(", "))}</p>`).join("")}</section>`:""}
   <div class="day-head"><span class="pill">${esc(datum)}</span><div class="bar" role="img" aria-label="${n} von ${all.length} erledigt"><i style="width:${pct}%"></i></div><span class="meta">${n} von ${all.length} erledigt</span></div>
-  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>`;
+  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>${dailyHistory()}${reminderCard()}`;
 }
 function viewWissen(){
   const K = D.wissen.kompass, E = D.wissen.einordnung;
@@ -519,32 +562,130 @@ function render(){
 }
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
+  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); }
 });
 document.addEventListener("change", e=>{
   const aid=e.target.dataset?.antwort;
   if(aid){ const a=store.get("antwort",{})||{}; a[aid]=e.target.value; store.set("antwort",a); return; }
   const day=e.target.dataset?.day;
-  if(day){ const s=new Set(store.get(dayKey(),[])); e.target.checked ? s.add(day) : s.delete(day); store.set(dayKey(),[...s]); render(); return; }
+  if(day){ const s=new Set(store.get(dayKey(),[])); e.target.checked ? s.add(day) : s.delete(day); store.set(dayKey(),[...s]); syncReminders(); render(); return; }
   const id=e.target.dataset?.step; if(!id) return;
   e.target.checked ? done.add(id) : done.delete(id);
   store.set("done",[...done]); render();
 });
 window.addEventListener("hashchange",()=>{ if(!D) return; tab=location.hash.slice(1); render(); window.scrollTo(0,0); });
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function unlock(pw){
-  const e = await (await fetch("data.enc.json")).json();
-  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
-  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(e.salt), iterations:e.iter, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+/* Schlüssel (nicht exportierbar) einmal pro Gerät in IndexedDB merken, damit keine Passwortabfrage mehr kommt */
+const KV = {
+  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open("heal",1); r.onupgradeneeded=()=>r.result.createObjectStore("kv"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async get(k){ const db=await this.open(); return new Promise((res,rej)=>{ const q=db.transaction("kv").objectStore("kv").get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); },
+  async set(k,v){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); },
+  async del(k){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction("kv","readwrite"); t.objectStore("kv").delete(k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+};
+async function loadEnc(){
+  const urls = NATIVE_APP ? ["https://tinaschickle.github.io/HEAL/data.enc.json?t="+Date.now(), "data.enc.json"] : ["data.enc.json"];
+  for(const u of urls){ try{ const r=await fetch(u,{cache:"no-store"}); if(r.ok){ const j=await r.json(); if(j.ct) return j; } }catch{} }
+  throw new Error("offline");
+}
+async function openWith(key, e){
   const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(e.iv)}, key, b64(e.ct));
   D = JSON.parse(new TextDecoder().decode(pt));
-  D.plan.todos.forEach(()=>{});
+  startApp();
+}
+async function unlock(pw){
+  const e = await loadEnc();
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(e.salt), iterations:e.iter, hash:"SHA-256"}, km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  await openWith(key, e);
+  try{ await KV.set("key", key); }catch{}
+}
+async function relock(){ try{ await KV.del("key"); }catch{} location.reload(); }
+
+/* Aufräumen und Erinnerungen */
+let lastDay = null, started = false;
+function dailyHousekeeping(){
+  const k = logicalDate(), ids = D.daily.flatMap(g=>g.items.map(i=>i.id));
+  if(store.get("dailyall:"+k, null)===null) store.set("dailyall:"+k, ids);
+  const cut = logicalDate(new Date(Date.now()-90*DAY));
+  try{ Object.keys(localStorage).forEach(key=>{ const m=key.match(/^heal:(daily|dailyall):(\d{4}-\d{2}-\d{2})$/); if(m && m[2]<cut) localStorage.removeItem(key); }); }catch{}
+}
+async function refreshPerm(){
+  try{
+    const ln = LN();
+    if(ln){ remPerm = (await ln.checkPermissions()).display; }
+    else if("Notification" in window){ remPerm = Notification.permission==="default" ? "prompt" : Notification.permission; }
+    else remPerm = "none";
+  }catch{ remPerm = "none"; }
+}
+async function syncReminders(){
+  const ln = LN(); if(!ln || !D || remPerm!=="granted") return;
+  try{
+    const pend = await ln.getPending();
+    if(pend.notifications.length) await ln.cancel({notifications: pend.notifications.map(n=>({id:n.id}))});
+    const now = new Date(), k0 = logicalDate(), set = doneSet(), list = [];
+    for(let n=0;n<14;n++){
+      const ds = new Date(slotTime(k0,12).getTime()+n*DAY).toLocaleDateString("sv-SE");
+      SLOTS.forEach(([hh,z],si)=>{
+        const at = slotTime(ds,hh); if(at<=now) return;
+        const open = openItems(z, n===0 ? set : new Set()); if(!open.length) return;
+        list.push({id:n*10+si+1, title:"HEAL · "+z, body:"Noch offen: "+remindBody(open), schedule:{at, allowWhileIdle:true}, channelId:"heal-reminder"});
+      });
+    }
+    if(list.length) await ln.schedule({notifications:list});
+  }catch(err){ console.warn("Erinnerungen", err); }
+}
+async function enableReminders(){
+  try{
+    const ln = LN();
+    if(ln){ await ln.requestPermissions(); }
+    else if("Notification" in window){ await Notification.requestPermission(); }
+  }catch{}
+  await refreshPerm();
+  const ln = LN();
+  if(ln && remPerm==="granted"){ try{ await ln.createChannel({id:"heal-reminder", name:"Erinnerungen Daily Plan", importance:4}); }catch{} await syncReminders(); }
+  render();
+}
+async function tick(){
+  if(!D) return;
+  const k = logicalDate();
+  if(k!==lastDay){ lastDay=k; dailyHousekeeping(); syncReminders(); if(tab==="daily") render(); }
+  if(LN() || !("Notification" in window) || Notification.permission!=="granted") return;
+  const fired = store.get("fired:"+k, []), set = doneSet(), now = new Date();
+  for(const [hh,z] of SLOTS){
+    if(fired.includes(hh)) continue;
+    const at = slotTime(k,hh); if(now<at || now-at>2*36e5) continue;
+    fired.push(hh); store.set("fired:"+k, fired);
+    const open = openItems(z,set); if(!open.length) continue;
+    const o = {body:"Noch offen: "+remindBody(open), tag:"heal-"+hh, icon:"icons/icon-192.png"};
+    try{ const reg = await navigator.serviceWorker.getRegistration(); reg ? reg.showNotification("HEAL · "+z, o) : new Notification("HEAL · "+z, o); }catch{}
+  }
+}
+function startApp(){
   $("#lock").hidden = true; $("#app").hidden = false; render();
+  if(started) return; started = true;
+  dailyHousekeeping(); lastDay = logicalDate();
+  refreshPerm().then(async ()=>{
+    const ln = LN(); if(ln && remPerm==="granted"){ try{ await ln.createChannel({id:"heal-reminder", name:"Erinnerungen Daily Plan", importance:4}); }catch{} }
+    await syncReminders(); tick();
+    if(tab==="daily") render();
+  });
+  setInterval(tick, 30000);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ refreshPerm().then(()=>{ tick(); if(tab==="daily") render(); }); } });
 }
 $("#lockForm").addEventListener("submit", async ev => {
   ev.preventDefault(); const msg = $("#lockMsg"); msg.textContent = "Prüfe …";
   try { await unlock($("#pw").value); $("#pw").value = ""; msg.textContent = ""; }
-  catch { msg.textContent = "Falsches Passwort."; }
+  catch(err) { msg.textContent = err && err.message==="offline" ? "Daten konnten nicht geladen werden. Bitte Internet prüfen." : "Falsches Passwort."; }
 });
+if("serviceWorker" in navigator && location.protocol.startsWith("http") && !NATIVE_APP) navigator.serviceWorker.register("sw.js").catch(()=>{});
+(async () => {
+  let key = null; try{ key = await KV.get("key"); }catch{}
+  if(!key) return;
+  try{
+    const e = await loadEnc();
+    try{ await openWith(key, e); }catch{ try{ await KV.del("key"); }catch{} }
+  }catch{ $("#lockMsg").textContent = "Daten konnten nicht geladen werden. Bitte Internet prüfen."; }
+})();
 </script>
 </body>
 </html>

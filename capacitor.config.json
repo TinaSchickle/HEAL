@@ -1,0 +1,6 @@
+{
+  "appId": "de.tinaschickle.heal",
+  "appName": "HEAL",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
