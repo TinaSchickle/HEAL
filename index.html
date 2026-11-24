@@ -478,7 +478,17 @@ const logicalDate = (d=new Date()) => new Date(d.getTime() - DAY_START_H*36e5).t
 const dayKey = () => "daily:" + logicalDate();
 const SLOTS = [[10,"Morgens"],[14,"Mittagessen"],[17,"Nachmittags"],[21,"Abends"]];
 const NATIVE_APP = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-const LN = () => NATIVE_APP && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
+/* Capacitor legt window.Capacitor.Plugins.LocalNotifications nur an, wenn das Plugin per registerPlugin angemeldet wird. Ohne Bundler passiert das nicht von selbst, deshalb hier selbst anmelden. */
+let _ln = null;
+const LN = () => {
+  if(!NATIVE_APP) return null;
+  if(!_ln){
+    const C = window.Capacitor;
+    try{ _ln = (C.Plugins && C.Plugins.LocalNotifications) || (C.registerPlugin ? C.registerPlugin("LocalNotifications") : null); }catch{ _ln = null; }
+  }
+  return _ln;
+};
+let remInfo = "";
 const doneSet = () => new Set(store.get(dayKey(), []));
 const openItems = (zeit, set=doneSet()) => ((D.daily.find(g=>g.zeit===zeit)||{}).items||[]).filter(i=>!set.has(i.id));
 const slotTime = (ds, hh) => { const [y,m,dd]=ds.split("-").map(Number); return new Date(y,m-1,dd,hh,0,0); };
@@ -510,7 +520,7 @@ function syncCard(){
 }
 function reminderCard(){
   let st;
-  if(remPerm==="granted") st = NATIVE_APP ? "Aktiv. Die Uhrzeit kann um einige Minuten abweichen." : "Aktiv, aber nur solange HEAL geöffnet ist. Erinnerungen bei geschlossener App gehen nur in der Android-App.";
+  if(remPerm==="granted") st = NATIVE_APP ? "Aktiv. Die Uhrzeit kann um einige Minuten abweichen." + (remInfo ? "<br>"+esc(remInfo) : "") + `<br><button type="button" data-act="remtest" style="margin-top:8px">Test-Erinnerung in 10 Sekunden</button>` : "Aktiv, aber nur solange HEAL geöffnet ist. Erinnerungen bei geschlossener App gehen nur in der Android-App.";
   else if(remPerm==="denied") st = "Blockiert. Bitte in den Android-Einstellungen für HEAL Benachrichtigungen erlauben.";
   else if(remPerm==="none") st = "Dieser Browser unterstützt keine Benachrichtigungen.";
   else st = `<button type="button" data-act="remind">Erinnerungen aktivieren</button>`;
@@ -569,7 +579,7 @@ function render(){
 }
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
-  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sbsync") syncAll(); }
+  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="remtest") testReminder(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sbsync") syncAll(); }
 });
 document.addEventListener("change", e=>{
   const aid=e.target.dataset?.antwort;
@@ -677,7 +687,20 @@ async function syncReminders(){
       });
     }
     if(list.length) await ln.schedule({notifications:list});
-  }catch(err){ console.warn("Erinnerungen", err); }
+    const after = await ln.getPending(), nxt = after.notifications.map(n=>n.schedule&&n.schedule.at?new Date(n.schedule.at):null).filter(Boolean).sort((a,b)=>a-b)[0];
+    remInfo = after.notifications.length + " Erinnerungen geplant" + (nxt ? ", nächste: " + nxt.toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "") + ".";
+    try{ const ex = await ln.checkExactNotificationSetting(); if(ex && ex.exact_alarm==="denied") remInfo += " Hinweis: Exakte Alarme sind in den Android-Einstellungen nicht erlaubt, Erinnerungen können sich verspäten."; }catch{}
+  }catch(err){ remInfo = "Fehler beim Planen: " + (err && err.message || err); console.warn("Erinnerungen", err); }
+  if(tab==="daily") render();
+}
+async function testReminder(){
+  const ln = LN(); if(!ln) return;
+  try{
+    try{ await ln.createChannel({id:"heal-reminder", name:"Erinnerungen Daily Plan", importance:4}); }catch{}
+    await ln.schedule({notifications:[{id:9999, title:"HEAL · Test", body:"Wenn du das siehst, funktionieren die Erinnerungen.", schedule:{at:new Date(Date.now()+10000), allowWhileIdle:true}, channelId:"heal-reminder"}]});
+    remInfo = "Testbenachrichtigung kommt in ca. 10 Sekunden. Du kannst die App dafür schließen.";
+  }catch(err){ remInfo = "Test fehlgeschlagen: " + (err && err.message || err); }
+  render();
 }
 async function enableReminders(){
   try{
