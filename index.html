@@ -408,7 +408,7 @@ function viewWerte(){
       ${spark(w)}
       ${w.verlauf.length?histTable(w.verlauf, w.einheit, p=>p):""}
     </article>`;}).join("")}</div>
-  <h3 class="sec">Weitere Befunde 10.06.2026 <span class="chip src labor" style="margin-left:6px">Bioscientia</span></h3>
+  <h3 class="sec">Weitere Befunde, Stand 25.11.2026 <span class="chip src labor" style="margin-left:6px">Bioscientia</span></h3>
   <section class="card scroll"><table class="t"><tr><th>Wert</th><th>Ergebnis</th><th>Bewertung</th></tr>
     ${D.weitereNormal.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></section>`;
 }
