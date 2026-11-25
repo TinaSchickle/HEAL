@@ -505,7 +505,7 @@ function dailyHistory(){
   for(let n=1;n<=14;n++){
     const k = logicalDate(new Date(Date.now()-n*DAY)), got = store.get("daily:"+k, null), snap = store.get("dailyall:"+k, null);
     if(got===null && snap===null) continue;
-    const all = snap || ids, hit = new Set(got||[]), miss = all.filter(i=>!hit.has(i)), c = all.length-miss.length;
+    const all = (snap || ids).filter(i=>name[i]), hit = new Set(got||[]), miss = all.filter(i=>!hit.has(i)), c = all.length-miss.length;
     const lbl = dt(k).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
     rows.push(`<details style="padding:6px 0;border-top:1px solid var(--line)"><summary>${esc(lbl)} · ${c} von ${all.length} erledigt</summary><p class="dtl" style="margin-top:6px">${miss.length?"Nicht abgehakt: "+esc(miss.map(i=>name[i]||i).join(", ")):"Alles abgehakt."}</p></details>`);
   }
@@ -533,7 +533,7 @@ function viewDaily(){
   return `<h2>Daily Plan</h2><p class="lead">Was ich jeden Tag mache. Die Haken gelten nur für heute und beginnen um 2 Uhr nachts neu. Was du abgehakt hast, wird gespeichert (siehe Verlauf).</p>
   ${od.length?`<section class="card" style="margin-bottom:14px;border-color:var(--warn)"><h3>Noch offen</h3>${od.map(([z,o])=>`<p><b>${esc(z)}:</b> ${esc(o.map(i=>i.text).join(", "))}</p>`).join("")}</section>`:""}
   <div class="day-head"><span class="pill">${esc(datum)}</span><div class="bar" role="img" aria-label="${n} von ${all.length} erledigt"><i style="width:${pct}%"></i></div><span class="meta">${n} von ${all.length} erledigt</span></div>
-  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>${dailyHistory()}${reminderCard()}${syncCard()}`;
+  <div class="grid">${D.daily.map(g=>`<section class="card"><h3>${esc(g.zeit)}</h3>${g.items.map(i=>`<label class="step ${set.has(i.id)?"done":""}"><input type="checkbox" data-day="${esc(i.id)}" ${set.has(i.id)?"checked":""}><span>${esc(i.text)}${i.zutaten&&i.zutaten.length?i.zutaten.map(z=>`<span class="dtl">· ${esc(z)}</span>`).join(""):i.detail?`<span class="dtl">${esc(i.detail)}</span>`:""}</span></label>`).join("")}</section>`).join("")}</div>${dailyHistory()}${reminderCard()}${syncCard()}`;
 }
 function viewWissen(){
   const K = D.wissen.kompass, E = D.wissen.einordnung;
