@@ -488,7 +488,7 @@ const LN = () => {
   }
   return _ln;
 };
-let remInfo = "";
+let remInfo = "", exactState = "";
 const doneSet = () => new Set(store.get(dayKey(), []));
 const openItems = (zeit, set=doneSet()) => ((D.daily.find(g=>g.zeit===zeit)||{}).items||[]).filter(i=>!set.has(i.id));
 const slotTime = (ds, hh) => { const [y,m,dd]=ds.split("-").map(Number); return new Date(y,m-1,dd,hh,0,0); };
@@ -520,7 +520,7 @@ function syncCard(){
 }
 function reminderCard(){
   let st;
-  if(remPerm==="granted") st = NATIVE_APP ? "Aktiv. Die Uhrzeit kann um einige Minuten abweichen." + (remInfo ? "<br>"+esc(remInfo) : "") + `<br><button type="button" data-act="remtest" style="margin-top:8px">Test-Erinnerung in 10 Sekunden</button>` : "Aktiv, aber nur solange HEAL geöffnet ist. Erinnerungen bei geschlossener App gehen nur in der Android-App.";
+  if(remPerm==="granted") st = NATIVE_APP ? "Android-App: Erinnerungen laufen auch bei geschlossener App." + (remInfo ? "<br>"+esc(remInfo) : "") + "<br>Exakte Alarme: " + (exactState==="granted" ? "erlaubt" : exactState==="denied" ? "<b>nicht erlaubt</b>, Erinnerungen können sich stark verspäten" : "unbekannt") + (exactState==="denied" ? `<br><button type="button" data-act="exactset" style="margin-top:8px">Exakte Alarme erlauben</button>` : "") + `<br><button type="button" data-act="remtest" style="margin-top:8px">Test-Erinnerung in 10 Sekunden</button><br><span class="meta">Kommt eine Erinnerung nur beim Öffnen der App: In den Android-Einstellungen unter Apps, HEAL, Akku auf „Unbegrenzt“ bzw. „Nicht optimieren“ stellen.</span>` : "Web-Version: Erinnerungen kommen nur, solange HEAL geöffnet ist. Für Erinnerungen bei geschlossener App brauchst du die Android-App: <a href=\"https://github.com/TinaSchickle/HEAL/releases/latest/download/HEAL.apk\">APK laden</a> und installieren, die Web-Version dann vom Startbildschirm entfernen.";
   else if(remPerm==="denied") st = "Blockiert. Bitte in den Android-Einstellungen für HEAL Benachrichtigungen erlauben.";
   else if(remPerm==="none") st = "Dieser Browser unterstützt keine Benachrichtigungen.";
   else st = `<button type="button" data-act="remind">Erinnerungen aktivieren</button>`;
@@ -579,7 +579,7 @@ function render(){
 }
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-tab]"); if(t){ tab=t.dataset.tab; location.hash=tab; render(); }
-  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="remtest") testReminder(); if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sbsync") syncAll(); }
+  const a=e.target.closest("[data-act]"); if(a){ if(a.dataset.act==="remind") enableReminders(); if(a.dataset.act==="remtest") testReminder(); if(a.dataset.act==="exactset"){ const l=LN(); if(l) l.changeExactNotificationSetting().catch(()=>{}); } if(a.dataset.act==="relock") relock(); if(a.dataset.act==="sbsync") syncAll(); }
 });
 document.addEventListener("change", e=>{
   const aid=e.target.dataset?.antwort;
@@ -689,7 +689,7 @@ async function syncReminders(){
     if(list.length) await ln.schedule({notifications:list});
     const after = await ln.getPending(), nxt = after.notifications.map(n=>n.schedule&&n.schedule.at?new Date(n.schedule.at):null).filter(Boolean).sort((a,b)=>a-b)[0];
     remInfo = after.notifications.length + " Erinnerungen geplant" + (nxt ? ", nächste: " + nxt.toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "") + ".";
-    try{ const ex = await ln.checkExactNotificationSetting(); if(ex && ex.exact_alarm==="denied") remInfo += " Hinweis: Exakte Alarme sind in den Android-Einstellungen nicht erlaubt, Erinnerungen können sich verspäten."; }catch{}
+    try{ const ex = await ln.checkExactNotificationSetting(); exactState = (ex && ex.exact_alarm) || ""; }catch{ exactState = ""; }
   }catch(err){ remInfo = "Fehler beim Planen: " + (err && err.message || err); console.warn("Erinnerungen", err); }
   if(tab==="daily") render();
 }
@@ -739,7 +739,7 @@ function startApp(){
     if(tab==="daily") render();
   });
   setInterval(tick, 30000);
-  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ refreshPerm().then(()=>{ tick(); syncAll(); if(tab==="daily") render(); }); } });
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ refreshPerm().then(()=>{ tick(); syncAll(); syncReminders(); if(tab==="daily") render(); }); } });
 }
 $("#lockForm").addEventListener("submit", async ev => {
   ev.preventDefault(); const msg = $("#lockMsg"); msg.textContent = "Prüfe …";
